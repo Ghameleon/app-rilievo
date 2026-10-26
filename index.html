@@ -5865,7 +5865,8 @@ function placePaste(ax, ay) {
   CLIP.ambs.forEach(a => {
     const c = JSON.parse(JSON.stringify(a)), base = roomBase(c.name);
     c.indices = a.indices.map(i => pn[i]); c.color = AMB_COLORS[state.ambienti.length % AMB_COLORS.length];
-    state.ambienti.push(c); c.name = base ? roomName(base, c) : c.name+' (copia)';
+    c.name = base ? roomName(base, null) : c.name+' (copia)';        // numerazione come per un ambiente nuovo
+    state.ambienti.push(c);
   });
   setTool('select');
   state.selSet = new Set(pn); state.selSeg = new Set(sn); state.selOpen = new Set(on); state.selAnchor = {x:ax, y:ay};
@@ -5999,8 +6000,8 @@ else {
 //  WEBAPP INSTALLABILE (solo se servita da internet, non da file locale)
 // ═══════════════════════════════════════════════════════════
 // versione e novita' vengono scritte da pubblica_app.py leggendo la prima voce di CHANGELOG.md
-const APP_VERSION = '2.06';
-const APP_NOTE = ["Ambiente selezionato: i suoi muri si evidenziano (celeste il contorno, arancione i muri che confinano con un altro ambiente, viola quelli dentro l'ambiente) e gli altri ambienti si attenuano, così si capisce cosa tocca cosa", "Copia e incolla di muri, serramenti e ambienti: \"Copia\" nei menu e nella barra della selezione (Ctrl+C), \"Incolla\" e \"Incolla sul posto\" nel menu Disegna (Ctrl+V). Utile per fare varianti di progetto; la copia resta anche aprendo un altro rilievo", "\"Eredita proprietà\" è anche un comando: lo scegli, tocchi l'elemento da cui prendere le proprietà e poi quelli che le ricevono. Nel vuoto cambi sorgente, di nuovo nel vuoto finisci. Resta anche nei menu degli elementi come scorciatoia", "Porta-finestra: niente più pannelli ciechi (sotto finestra). Nei progetti vecchi vengono azzerati e l'app te lo dice", "Righe alternate dei menu in arancione più leggibili"];
+const APP_VERSION = '2.07';
+const APP_NOTE = ["Copia e incolla: l'ambiente incollato prende il nome numerato successivo (Soggiorno 2, Camera 3...) invece di ripetere il nome dell'originale"];
 const IS_LOCAL = APP_VERSION.startsWith('__');
 document.getElementById('menu-version').textContent = IS_LOCAL ? 'Versione locale' : 'ℹ Versione '+APP_VERSION+' - novità';
 // finestra con un elenco puntato (novita', note di aggiornamento del progetto); extra = secondo elenco con titoletto
