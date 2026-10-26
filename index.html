@@ -14,7 +14,7 @@
     * { margin:0; padding:0; box-sizing:border-box; }
     body { background:#1a1a2e; color:#eee; font-family:'Segoe UI',system-ui,sans-serif; overflow:hidden; height:100vh; height:var(--vh,100vh); width:100vw; }
     /* niente selezione del testo con la pressione lunga solo dove si disegna e sui comandi: sul resto della pagina (campi, finestre) tutto normale */
-    #canvas, #imp-canvas, #toolbar, #statusbar, #menu-tab, #hand-btn, #mag-btn, #exp-bar, #imp-bar, .floating-menu, #info-tip, .fab, .tool-btn, .menu-item, #sel-bar
+    #canvas, #imp-canvas, #toolbar, #statusbar, #menu-tab, #hand-btn, #mag-btn, #help-btn, #leg-btn, #exp-bar, #imp-bar, .floating-menu, #info-tip, .fab, .tool-btn, .menu-item, #sel-bar
       { -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent; }
 
     #toolbar {
@@ -58,8 +58,10 @@
 
     .floating-menu {
       position:fixed; background:#16213e; border:1px solid #0f3460; border-radius:8px;
-      overflow:hidden; z-index:200; min-width:190px; box-shadow:0 4px 20px rgba(0,0,0,.5); display:none;
+      overflow:hidden auto; max-height:calc(var(--vh,100vh) - 12px); z-index:200; min-width:190px; box-shadow:0 4px 20px rgba(0,0,0,.5); display:none;
     }
+    .menu-item small.md { display:block; font-size:11px; color:#9fb3d1; margin-top:1px; max-width:300px; }
+    .menu-item.hi small.md { color:#ffd9df; }
     .menu-item { padding:10px 16px; font-size:14px; cursor:pointer; border-bottom:1px solid #0f3460; }
     .menu-item:last-child { border-bottom:none; }
     .menu-item:hover { background:#0f3460; }
@@ -100,6 +102,20 @@
     #hand-btn { position:fixed; top:10px; right:10px; z-index:160; min-width:46px; height:46px; border-radius:23px; padding:0 14px; font-size:20px; background:rgba(22,33,62,.82); color:#fff; border:1px solid #4a9eff; box-shadow:0 2px 10px rgba(0,0,0,.45); }
     #hand-btn.on { background:#1a6a3a; border-color:#2a9a5a; font-size:15px; }
     #mag-btn { position:fixed; top:64px; right:10px; z-index:160; min-width:46px; height:46px; border-radius:23px; padding:0 14px; font-size:20px; background:rgba(22,33,62,.82); color:#fff; border:1px solid #4a9eff; box-shadow:0 2px 10px rgba(0,0,0,.45); }
+    #help-btn, #leg-btn { position:fixed; right:10px; z-index:160; min-width:46px; height:46px; border-radius:23px; padding:0 14px; font-size:20px; background:rgba(22,33,62,.82); color:#fff; border:1px solid #4a9eff; box-shadow:0 2px 10px rgba(0,0,0,.45); }
+    #help-btn { top:118px; font-weight:bold; }
+    #leg-btn { top:172px; }
+    #leg-box { position:fixed; top:172px; right:64px; z-index:160; display:none; background:rgba(22,33,62,.95); border:1px solid #0f3460; border-radius:8px; padding:8px 12px; font-size:12px; color:#ddd; }
+    #leg-box div { display:flex; align-items:center; gap:8px; margin:3px 0; }
+    #leg-box i { width:22px; border-top:3px solid; }
+    #guide-card { position:fixed; top:10px; right:66px; width:min(420px, calc(100vw - 76px - var(--tb-w,0px))); z-index:158; display:none; background:#16213e; border:1px solid #ffe066; border-radius:10px; padding:12px 14px; color:#eee; font-size:14px; line-height:1.4; box-shadow:0 4px 18px rgba(0,0,0,.6); max-height:calc(var(--vh,100vh) - 60px); overflow-y:auto; }
+    #guide-card h4 { color:#ffe066; font-size:14px; margin-bottom:6px; }
+    #guide-card .gb { display:block; width:100%; text-align:left; margin:5px 0; padding:8px 12px; background:#0f3460; border:1px solid #1a5a9a; color:#eee; border-radius:6px; font-size:14px; cursor:pointer; }
+    #guide-card .gb small { display:block; color:#9fb3d1; font-size:11px; }
+    #guide-card .row { display:flex; justify-content:space-between; align-items:center; margin-top:8px; gap:8px; }
+    #guide-card .row button { background:#0f3460; border:1px solid #1a5a9a; color:#eee; border-radius:5px; padding:6px 12px; cursor:pointer; font-size:13px; }
+    .guide-hi { outline:3px solid #ffe066 !important; outline-offset:2px; animation:gpulse 1.1s ease-in-out infinite; }
+    @keyframes gpulse { 50% { outline-color:rgba(255,224,102,.25); } }
     #mag-btn.off { background:#6a1a2a; border-color:#e94560; font-size:15px; }
     .fab { position:fixed; right:12px; z-index:160; display:none; color:#fff; border-radius:22px; padding:12px 18px; font-size:15px; box-shadow:0 4px 14px rgba(0,0,0,.5); }
     /* azioni della selezione multipla: compaiono vicino all'ultimo elemento toccato, mai sotto il dito */
@@ -185,7 +201,7 @@
   <button class="tool-btn" id="btn-g-ins" title="Inserisci" onclick="toggleMenu('group-ins',this)"><span class="ic">🧱</span><span class="cap">Inserisci</span></button>
   <button class="tool-btn green" title="Annulla" onclick="undo()"><span class="ic">↩</span><span class="cap">Annulla</span></button>
   <button class="tool-btn green" title="Centra vista" onclick="centerView()"><span class="ic">⌂</span><span class="cap">Centra</span></button>
-  <button class="tool-btn green" title="File" onclick="toggleMenu('file-submenu',this)"><span class="ic">💾</span><span class="cap">File</span></button>
+  <button class="tool-btn green" id="btn-file" title="File" onclick="toggleMenu('file-submenu',this)"><span class="ic">💾</span><span class="cap">File</span></button>
 </div>
 <button id="menu-tab" title="Mostra il menu" onclick="toggleMenuBar(true)">☰</button>
 
@@ -210,63 +226,61 @@
   <div class="menu-item tool-item" id="ti-pencil" onclick="pickTool('pencil')"><span class="ti">✏</span><span class="tt"><b>Matita</b><small>Disegno a mano libera</small></span></div>
 </div>
 <div id="file-submenu" class="floating-menu">
-  <div class="menu-item hi" onclick="importPlan()">🗺 Importa planimetria (PDF/JPG)</div>
-  <div class="menu-item hi" onclick="photoPlan()">📷 Fotografa planimetria</div>
-  <div class="menu-item" onclick="toggleBasePanel()">🗺 Mostra/nascondi pannello base</div>
-  <div class="menu-item" onclick="exportDXF()">📐 Esporta DXF</div>
-  <div class="menu-item" onclick="exportOpeningsCSV()">🪟 Esporta elenco serramenti (CSV)</div>
-  <div class="menu-item" onclick="exportSuperficieCommerciale()">🏠 Esporta superficie commerciale (CSV)</div>
-  <div class="menu-item" onclick="startExport('jpg')">🖼 Esporta JPG</div>
-  <div class="menu-item" onclick="startExport('pdf')">📄 Esporta PDF</div>
-  <div class="menu-item" onclick="exportTablesMenu('tab')">📊 Esporta tabelle (PDF/JPG)</div>
-  <div class="menu-item" onclick="exportTablesMenu('full')">📑 Esporta rilievo completo (PDF)</div>
-  <div class="menu-item hi" onclick="saveProject()">💾 Salva progetto (.json)</div>
-  <div class="menu-item hi" onclick="loadProject()">📂 Apri progetto (.json)</div>
-  <div class="menu-item" onclick="clearAll()">🗑 Cancella tutto</div>
-  <div class="menu-item hi" id="menu-install" style="display:none" onclick="installApp()">📲 Installa app</div>
+  <div class="menu-item hi" id="fm-import" onclick="importPlan()">🗺 Importa planimetria (PDF/JPG)<small class="md">La catastale come base su cui ricalcare</small></div>
+  <div class="menu-item hi" id="fm-photo" onclick="photoPlan()">📷 Fotografa planimetria<small class="md">Il foglio di carta: lo raddrizzi e lo metti in scala</small></div>
+  <div class="menu-item" onclick="toggleBasePanel()">🗺 Mostra/nascondi pannello base<small class="md">Trasparenza della base e Ricalca ambienti</small></div>
+  <div class="menu-item" id="fm-full" onclick="exportTablesMenu('full')">📑 Esporta rilievo completo (PDF)<small class="md">Un solo PDF: disegno in scala e tabelle</small></div>
+  <div class="menu-item" id="fm-tables" onclick="exportTablesMenu('tab')">📊 Esporta tabelle (PDF/JPG/CSV)<small class="md">Ambienti, serramenti, superficie commerciale</small></div>
+  <div class="menu-item" onclick="startExport('pdf')">📄 Esporta PDF<small class="md">Il disegno su A4 in scala, da stampare</small></div>
+  <div class="menu-item" onclick="startExport('jpg')">🖼 Esporta JPG<small class="md">Il disegno su A4 in scala, come immagine</small></div>
+  <div class="menu-item" id="fm-dxf" onclick="exportDXF()">📐 Esporta DXF<small class="md">Per AutoCAD e gli altri CAD, in metri</small></div>
+  <div class="menu-item hi" id="fm-save" onclick="saveProject()">💾 Salva progetto (.json)<small class="md">Archivia il rilievo o passalo a un collega</small></div>
+  <div class="menu-item hi" id="fm-open" onclick="loadProject()">📂 Apri progetto (.json)<small class="md">Riprendi un rilievo salvato</small></div>
+  <div class="menu-item" onclick="clearAll()">🗑 Cancella tutto<small class="md">Riparti da un foglio bianco</small></div>
+  <div class="menu-item hi" id="menu-install" style="display:none" onclick="installApp()">📲 Installa app<small class="md">Icona sul telefono, funziona anche senza rete</small></div>
   <div class="menu-item" id="menu-version" style="font-size:12px;color:#aaa" onclick="showNews()"></div>
 </div>
 <div id="context-menu" class="floating-menu">
-  <div class="menu-item hi" onclick="menuAction('circumference')">◎ Circonferenza</div>
-  <div class="menu-item hi" onclick="menuAction('connect')">/ Collega a…</div>
-  <div class="menu-item hi" onclick="menuAction('wall')">▭ Muro da qui</div>
-  <div class="menu-item hi" onclick="menuAction('measure')">📏 Misura da qui</div>
-  <div class="menu-item"    onclick="menuAction('photo')">📷 Fai foto</div>
-  <div class="menu-item"    onclick="menuAction('note')">📝 Inserisci nota</div>
-  <div class="menu-item"    onclick="menuAction('absorb')">⟷ Riassorbi punto nella linea</div>
-  <div class="menu-item"    onclick="menuAction('multi')">➕ Selezione multipla</div>
-  <div class="menu-item"    onclick="menuAction('delete')">🗑 Elimina punto</div>
+  <div class="menu-item hi" onclick="menuAction('circumference')">◎ Circonferenza<small class="md">Cerchio di raggio misurato: il punto nuovo sta sull'incrocio</small></div>
+  <div class="menu-item hi" onclick="menuAction('connect')">/ Collega a…<small class="md">Linea da questo punto a un altro</small></div>
+  <div class="menu-item hi" onclick="menuAction('wall')">▭ Muro da qui<small class="md">Continua a tracciare muri partendo da qui</small></div>
+  <div class="menu-item hi" onclick="menuAction('measure')">📏 Misura da qui<small class="md">Distanza da questo punto a un altro</small></div>
+  <div class="menu-item"    onclick="menuAction('photo')">📷 Fai foto<small class="md">Foto del dettaglio, resta legata al punto</small></div>
+  <div class="menu-item"    onclick="menuAction('note')">📝 Inserisci nota<small class="md">Appunto legato al punto</small></div>
+  <div class="menu-item"    onclick="menuAction('absorb')">⟷ Riassorbi punto nella linea<small class="md">Toglie il vertice: le due linee diventano una</small></div>
+  <div class="menu-item"    onclick="menuAction('multi')">➕ Selezione multipla<small class="md">Poi tocca altri elementi per agire su tutti</small></div>
+  <div class="menu-item"    onclick="menuAction('delete')">🗑 Elimina punto<small class="md">Cancella il punto e le sue linee</small></div>
 </div>
 <div id="opening-context" class="floating-menu">
-  <div class="menu-item" onclick="openingMenuAction('multi')">➕ Selezione multipla</div>
-  <div class="menu-item" onclick="openingMenuAction('setdist')">📏 Imposta distanza</div>
-  <div class="menu-item" onclick="openingMenuAction('edit')">✎ Modifica misure</div>
-  <div class="menu-item" onclick="openingMenuAction('energy')">📋 Dati energetici</div>
-  <div class="menu-item" onclick="openingMenuAction('delete')">🗑 Elimina</div>
-  <div class="menu-item" onclick="openingMenuAction('editall')">✎ Modifica tutti quelli dello stesso tipo</div>
-  <div class="menu-item" onclick="openingMenuAction('renum')">🔢 Rinumera F, PF e P</div>
-  <div class="menu-item" onclick="openingMenuAction('deldoors')">🗑 Elimina tutte le porte (P)</div>
+  <div class="menu-item" onclick="openingMenuAction('multi')">➕ Selezione multipla<small class="md">Poi tocca altri elementi per agire su tutti</small></div>
+  <div class="menu-item" onclick="openingMenuAction('setdist')">📏 Imposta distanza<small class="md">Posizionalo a una distanza misurata dallo spigolo</small></div>
+  <div class="menu-item" onclick="openingMenuAction('edit')">✎ Modifica misure<small class="md">Larghezza, altezza, davanzale e nome</small></div>
+  <div class="menu-item" onclick="openingMenuAction('energy')">📋 Dati energetici<small class="md">Vetro, telaio, cassonetto e specchiature, per l'APE</small></div>
+  <div class="menu-item" onclick="openingMenuAction('delete')">🗑 Elimina<small class="md">Il muro si richiude</small></div>
+  <div class="menu-item" onclick="openingMenuAction('editall')">✎ Modifica tutti quelli dello stesso tipo<small class="md">Stesse misure a tutte le F, PF o P</small></div>
+  <div class="menu-item" onclick="openingMenuAction('renum')">🔢 Rinumera F, PF e P<small class="md">Numeri in ordine, senza buchi</small></div>
+  <div class="menu-item" onclick="openingMenuAction('deldoors')">🗑 Elimina tutte le porte (P)<small class="md">Via in un colpo le porte messe dal ricalco</small></div>
 </div>
 <div id="seg-context" class="floating-menu">
   <div class="menu-item hi" id="sm-conf" onclick="segMenuAction('confirm')"></div>
-  <div class="menu-item" onclick="segMenuAction('multi')">➕ Selezione multipla</div>
-  <div class="menu-item" onclick="segMenuAction('F')">🪟 Inserisci finestra qui</div>
-  <div class="menu-item" onclick="segMenuAction('PF')">🚪 Inserisci porta-finestra qui</div>
-  <div class="menu-item" onclick="segMenuAction('move')">✥ Sposta</div>
-  <div class="menu-item" onclick="segMenuAction('thick')">📏 Spessore e tipo</div>
-  <div class="menu-item" onclick="segMenuAction('split')">✂ Spezza qui</div>
-  <div class="menu-item" onclick="segMenuAction('delete')">🗑 Elimina linea</div>
+  <div class="menu-item" onclick="segMenuAction('multi')">➕ Selezione multipla<small class="md">Poi tocca altri elementi per agire su tutti</small></div>
+  <div class="menu-item" onclick="segMenuAction('F')">🪟 Inserisci finestra qui<small class="md">Nel punto toccato</small></div>
+  <div class="menu-item" onclick="segMenuAction('PF')">🚪 Inserisci porta-finestra qui<small class="md">Nel punto toccato</small></div>
+  <div class="menu-item" onclick="segMenuAction('move')">✥ Sposta<small class="md">Trascina il muro dove va</small></div>
+  <div class="menu-item" onclick="segMenuAction('thick')">📏 Spessore e tipo<small class="md">Classe (colore) e spessore: servono a superficie commerciale e demolizioni</small></div>
+  <div class="menu-item" onclick="segMenuAction('split')">✂ Spezza qui<small class="md">Nuovo vertice nel punto toccato</small></div>
+  <div class="menu-item" onclick="segMenuAction('delete')">🗑 Elimina linea<small class="md">Cancella solo questa linea</small></div>
 </div>
 <div id="quota-context" class="floating-menu">
-  <div class="menu-item hi" onclick="quotaMenuAction('set')">✎ Imposta misura</div>
-  <div class="menu-item"    id="qm-val"   onclick="quotaMenuAction('validate')">✔ Valida così com'è</div>
-  <div class="menu-item"    id="qm-unval" onclick="quotaMenuAction('unvalidate')">↺ Togli convalida</div>
-  <div class="menu-item"    id="qm-reset" onclick="quotaMenuAction('reset')">⌖ Riporta la quota al suo posto</div>
+  <div class="menu-item hi" onclick="quotaMenuAction('set')">✎ Imposta misura<small class="md">Scrivi la misura rilevata: il muro si adegua</small></div>
+  <div class="menu-item"    id="qm-val"   onclick="quotaMenuAction('validate')">✔ Valida così com'è<small class="md">La misura del disegno è giusta: la quota diventa verde</small></div>
+  <div class="menu-item"    id="qm-unval" onclick="quotaMenuAction('unvalidate')">↺ Togli convalida<small class="md">Torna da verificare</small></div>
+  <div class="menu-item"    id="qm-reset" onclick="quotaMenuAction('reset')">⌖ Riporta la quota al suo posto<small class="md">Il numero torna accanto al muro</small></div>
 </div>
 <div id="amb-context" class="floating-menu">
-  <div class="menu-item" onclick="ambMenuAction('edit')">✎ Modifica ambiente</div>
-  <div class="menu-item" onclick="ambMenuAction('delete')">🗑 Elimina solo l'ambiente</div>
-  <div class="menu-item" onclick="ambMenuAction('deleteall')">🗑 Elimina ambiente e sue linee</div>
+  <div class="menu-item" onclick="ambMenuAction('edit')">✎ Modifica ambiente<small class="md">Nome, altezza e categoria; mostra superficie e pareti</small></div>
+  <div class="menu-item" onclick="ambMenuAction('delete')">🗑 Elimina solo l'ambiente<small class="md">Le linee restano</small></div>
+  <div class="menu-item" onclick="ambMenuAction('deleteall')">🗑 Elimina ambiente e sue linee<small class="md">Anche i muri che non servono ad altri ambienti</small></div>
 </div>
 <div id="entity-context" class="floating-menu">
   <div class="menu-item" id="ent-edit" onclick="entityMenuAction('edit')">✎ Modifica</div>
@@ -325,7 +339,7 @@
   <input type="range" id="base-alpha" min="10" max="100" value="60" oninput="baseAlpha(+this.value)">
   <div class="row" id="base-color-row"><label><input type="checkbox" id="base-color" onchange="baseColor(this.checked)"> Originale a colori</label></div>
   <div id="base-info" style="color:#888"></div>
-  <div class="row"><button class="ok" onclick="wallsOpen()">🏠 Ricalca ambienti</button>
+  <div class="row"><button class="ok" id="base-ricalca" onclick="wallsOpen()">🏠 Ricalca ambienti</button>
     <button onclick="fitUnderlay()">Adatta</button><button onclick="baseRemove()">🗑</button></div>
   <div class="row"><button id="base-move" onclick="toggleMoveBase()">✥ Sposta base (trascina, poi ritocca per finire)</button></div>
 </div>
@@ -336,7 +350,7 @@
   <div class="row"><span>Semplificazione (1 dettaglio - 5 poche linee)</span><b id="w-lev-v">3</b></div>
   <input type="range" id="w-lev" min="1" max="5" step="1" value="3" oninput="wallsSchedule()">
   <div id="walls-count" style="color:#ffe066"></div>
-  <div class="row"><button class="ok" onclick="wallsApply()">✔ Applica al disegno</button><button onclick="wallsClose()">Chiudi</button></div>
+  <div class="row"><button class="ok" id="walls-apply" onclick="wallsApply()">✔ Applica al disegno</button><button onclick="wallsClose()">Chiudi</button></div>
 </div>
 
 <div id="exp-bar">
@@ -354,6 +368,10 @@
 <div id="hint-tooltip"></div>
 <button id="hand-btn" title="Mano: sposta la vista con un dito" onclick="toggleHand()">✋</button>
 <button id="mag-btn" title="Calamita: angoli, ortogonali e allineamenti" onclick="toggleMagnet()">🧲</button>
+<button id="help-btn" title="Guida: cosa devi fare oggi?" onclick="guideMenu()">?</button>
+<button id="leg-btn" title="Legenda dei colori dei muri" onclick="toggleLegend()" style="display:none">🎨</button>
+<div id="leg-box"></div>
+<div id="guide-card"></div>
 <button id="move-base-btn"  class="fab" onclick="toggleMoveBase()"      style="bottom:calc(144px + var(--tb-h,0px));background:#1a6a3a;border:1px solid #2a9a5a">✥ Base in spostamento - tocca per finire</button>
 <div id="sel-bar">
   <span id="selb-n" title="Elementi selezionati"></span>
@@ -630,6 +648,8 @@ function updateValid() {
   if (el && el.textContent !== txt) el.textContent = txt;
   const nd = state.segments.filter(g => g.cv==='dubbio').length, ed = document.getElementById('sb-dubbi');
   if (ed) { setDisp(ed, nd ? '' : 'none'); setTxt(ed, '⚠ Muri non assegnati: '+nd); }
+  const cls = nd > 0 || state.segments.some(g => g.commType);              // legenda solo se c'e' qualcosa da leggere
+  setDisp($id('leg-btn'), cls ? '' : 'none'); if (!cls) setDisp($id('leg-box'), 'none');
 }
 
 // ---- quota dei serramenti: spostabile, con la linea di richiamo sempre tracciata
@@ -1158,7 +1178,7 @@ function classifyByOpening(i) {
   g.commType = type; delete g.cv; g.cvOp = true;
   let n = 0;                                 // stessa facciata: i muri da validare in linea con questo prendono la stessa proposta (sempre da validare)
   if (type==='perimetrale') state.segments.forEach((h,k) => { if (k!==si && h.cv==='dubbio' && h.layer==='MURI_EST' && h.commType!==type && collinear(g,h)) { h.commType = type; n++; } });
-  return ' Muro esterno: '+WALL_SHORT[type]+(n ? ' (proposto anche a '+n+' mur'+(n===1?'o':'i')+' in linea, da validare)' : '')+'.';
+  return ' Muro esterno: '+wallName(type)+(n ? ' (proposto anche a '+n+' mur'+(n===1?'o':'i')+' in linea, da validare)' : '')+'.';
 }
 // anelli chiusi del contorno esterno (MURI_EST): vertici in ordine e linee che li compongono
 function extRings() {
@@ -1254,7 +1274,7 @@ function segMenuAction(action) {
   if (action==='confirm') {
     const g = state.segments[s.idx]; if (!g.cv) return;
     saveHistory(); delete g.cv; delete g.cvOp; g.wt = Date.now();
-    commit('Confermato: '+WALL_SHORT[g.commType||'']+(g.thick ? ' '+Math.round(g.thick*100)+' cm' : '')+'.'); return;
+    commit('Confermato: '+wallName(g.commType||'')+(g.thick ? ' '+Math.round(g.thick*100)+' cm' : '')+'.'); return;
   }
   if (action==='thick') wallThickMenuAction([s.idx]);    // solo la linea toccata, anche se resta una selezione a riquadro
 }
@@ -1326,12 +1346,18 @@ const WALL_TYPES = [
   {value:'comunione',   label:'Verso altre unità riscaldate (verde) - 50%, fino a 25 cm'},
   {value:'nonrisc',     label:'Verso non riscaldati o vano scala (giallo) - 50%, fino a 25 cm'},
 ];
-const WALL_SHORT = {'':'Interno', perimetrale:'Esterno', comunione:'Altre unità riscaldate', nonrisc:'Non riscaldati/vano scala'};
+// una sola definizione per classe: nome breve, colore a video (chiave di C), tratto e spessore in stampa (mm)
+const WALL_STYLE = {
+  '':          {name:'Interno',                    col:'wall',    dash:[],              w:0.35},
+  perimetrale: {name:'Esterno',                    col:'wallExt', dash:[],              w:0.5},
+  comunione:   {name:'Altre unità riscaldate',     col:'wallCom', dash:[3,0.8,0.6,0.8], w:0.5},
+  nonrisc:     {name:'Non riscaldati/vano scala',  col:'wallNr',  dash:[1.6,0.8],       w:0.5},
+  nd:          {name:'Non assegnato',              col:'wallNd',  dash:[0.4,0.8],       w:0.35},
+};
+// classe con cui si disegna: il contorno del ricalco senza tipo resta esterno
+function wallClass(g) { return g.cv==='dubbio' ? 'nd' : g.commType || (g.layer==='MURI_EST' ? 'perimetrale' : ''); }
+function wallName(t) { return WALL_STYLE[t||''].name; }
 function wallCom(g) { return g.commType==='comunione' || g.commType==='nonrisc'; }      // al 50% nella superficie commerciale
-function wallColor(g) {
-  if (g.cv==='dubbio') return C.wallNd;
-  return {perimetrale:C.wallExt, comunione:C.wallCom, nonrisc:C.wallNr}[g.commType] || (g.layer==='MURI_EST' ? C.wallExt : C.wall);
-}
 
 // nome dell'ambiente da elenco, sempre univoco: quelli che di solito si ripetono (ROOM_NUM) partono da "1", gli altri
 // prendono il numero solo se si ripetono (il primo senza numero diventa "1"). Il numero nuovo e' il primo libero;
@@ -1459,8 +1485,10 @@ function drawPencil() {
 function drawSegments() {
   const style = (g, i) => {
     const selL = (state.selSeg && state.selSeg.has(i)) || isSel('segment',i);
-    ctx.strokeStyle = selL ? '#e94560' : wallColor(g); ctx.lineWidth = selL ? 4 : prLw(2.5, g.layer==='MURI_EST' ? 0.5 : 0.35);
-    ctx.setLineDash(!PRINT && g.cv==='dubbio' ? [9,6] : []);       // non assegnato: tipo proposto dall'app, da validare
+    const st = WALL_STYLE[wallClass(g)];
+    ctx.strokeStyle = selL ? '#e94560' : C[st.col]; ctx.lineWidth = selL ? 4 : prLw(2.5, st.w);
+    // in stampa la classe si legge dal tratto; a video dal colore, tratteggiato se non assegnato (tipo proposto, da validare)
+    ctx.setLineDash(PRINT ? st.dash.map(v => v*PX_MM) : g.cv==='dubbio' ? [9,6] : []);
   };
   state.segments.forEach((g,i) => {
     const A=state.points[g.a], B=state.points[g.b]; if(!A||!B) return;
@@ -2454,7 +2482,7 @@ function showMenu(id, x, y, above, avoid) {
   if (id==='entity-context') document.getElementById('ent-edit').style.display = state.sel && state.sel.kind==='pencil' ? 'none' : '';
   if (id==='seg-context') {                    // muro esterno col tipo proposto dall'app: conferma con un tocco
     const g = state.sel && state.sel.kind==='segment' && state.segments[state.sel.idx], it = document.getElementById('sm-conf');
-    if (g && g.cv==='dubbio') { it.style.display = ''; it.textContent = '✔ Conferma: '+WALL_SHORT[g.commType||'']+(g.thick ? ' '+Math.round(g.thick*100)+' cm' : ''); }
+    if (g && g.cv==='dubbio') { it.style.display = ''; it.textContent = '✔ Conferma: '+wallName(g.commType||'')+(g.thick ? ' '+Math.round(g.thick*100)+' cm' : ''); }
     else it.style.display = 'none';
   }
   if (id==='quota-context' && state.sel && state.sel.kind==='quota') {
@@ -3279,8 +3307,31 @@ const COUNTERS  = ['pilastroCounter','scalaCounter','pointCounter'];   // numeri
 // le foto dei punti pesano: nelle copie di Annulla ce n'e' una per passo (fino a 60), quindi i dati stanno in un deposito unico (pid)
 // e le copie portano solo il riferimento; il salvataggio vero (inline=true) le porta intere
 const photoStore = new Map(); let photoSeq = 0;
+
+// COMPATIBILITA' DEI PROGETTI: un rilievo di qualsiasi versione si apre sempre. Ogni modifica del formato dei dati
+// alza DATA_FMT e aggiunge qui il suo passo, che aggiorna il progetto e dice cosa e' cambiato e cosa controllare a mano.
+// I passi si applicano in ordine dal formato del progetto in poi. Formato 1 = progetti fino alla 2.02 (senza "fmt").
+const DATA_FMT = 2;
+const MIGRATIONS = [
+  { fmt:2, ver:'2.03', run:o => {
+    (o.ambienti||[]).forEach(a => { if (a.outdoor && !a.category) a.category = 'balconi'; delete a.outdoor; });   // flag "senza volume" delle 1.16-1.19
+    const nCom = (o.segments||[]).filter(g => g.commType==='comunione').length;
+    return [
+      nCom ? 'Muri: ora le classi sono quattro, ognuna col suo colore. '+(nCom===1 ? 'Il muro "In comunione" è diventato' : 'I '+nCom+' muri "In comunione" sono diventati')+' "Verso altre unità riscaldate": quelli che danno sul vano scala o su locali non riscaldati cambiali da Spessore e tipo (giallo).' : '',
+      (o.ambienti||[]).length ? 'Ambienti: il nome ora si sceglie da elenco (Camera 1, Bagno 1...). I nomi che hai dato restano; per la numerazione automatica scegli il nome da Modifica ambiente.' : '',
+    ].filter(Boolean);
+  }},
+];
+// aggiorna il progetto letto (file o browser) al formato corrente; restituisce le note per chi lo apre ([] se era gia' aggiornato)
+function migrate(o) {
+  const from = o.fmt || 1, notes = [];
+  MIGRATIONS.forEach(m => { if (m.fmt > from) notes.push(...m.run(o)); });
+  o.fmt = DATA_FMT;
+  if (from >= DATA_FMT) return [];
+  return ['Il progetto era stato salvato con la versione '+(o.app || '2.02 o precedente')+' e ora è aggiornato a questa.'].concat(notes);
+}
 function snapshot(inline) {
-  const o = {};
+  const o = {fmt:DATA_FMT};
   SNAP_KEYS.concat(COUNTERS).forEach(k => o[k] = state[k]);
   o.points = state.points.map(p => {
     if (!p.photo || !p.photo.data) return p;
@@ -3302,7 +3353,6 @@ function restore(o) {
   SNAP_KEYS.forEach(k => { state[k] = o[k] || []; });               // una parte mancante nel file significa vuota, non "resta quella di prima"
   COUNTERS.forEach(k => state[k] = o[k] || 0);
   photosIn(state.points);
-  state.ambienti.forEach(a => { if (a.outdoor && !a.category) a.category = 'balconi'; delete a.outdoor; });   // flag "senza volume" delle 1.16-1.19
   state.sel=null; state.selSet=null; state.selOpen=null; state.selSeg=null; state.selPen=null; state.pending=null; state.cand=null; state.circles=[];
   state.multi=false; state.moveSel=false;
 }
@@ -3351,10 +3401,12 @@ function restoreFromStorage() {
     if (!raw) return false;
     const o = JSON.parse(raw);
     if (!o || !Array.isArray(o.points) || !o.points.length) return false;
+    startNotes = migrate(o);
     restore(o);
     return true;
   } catch (err) { return false; }
 }
+let startNotes = [];          // note di aggiornamento del rilievo ritrovato nel browser, mostrate all'avvio
 
 // ═══════════════════════════════════════════════════════════
 //  SALVA / APRI PROGETTO
@@ -3374,7 +3426,7 @@ function stamp() {
 }
 function saveProject() {
   hideAllMenus();
-  const snap = snapshot(true); snap.underlay = underlayToJSON();
+  const snap = snapshot(true); snap.underlay = underlayToJSON(); snap.app = APP_VERSION;
   download(stamp()+'_rilievo.json', JSON.stringify(snap, null, 1), 'application/json');
   setTip('Progetto salvato. Riaprilo con "Apri progetto" per riprendere il rilievo.');
 }
@@ -3390,8 +3442,10 @@ document.getElementById('file-json').addEventListener('change', e => {
     try {
       const o = JSON.parse(rd.result);
       if (!o || !Array.isArray(o.points)) throw new Error('formato non valido');
+      const notes = migrate(o);
       saveHistory(); restore(o); state.underlay = null; state.wallsPrev = null; state.moveBase = false; refreshBasePanel();
       if (o.underlay) underlayFromJSON(o.underlay); centerView(); commit('Progetto caricato.');
+      if (notes.length) listDialog('Progetto aggiornato', notes);
     } catch (err) { alert('File non valido: '+err.message); }
   };
   rd.readAsText(f);
@@ -3519,7 +3573,7 @@ function renderExport(E, den, orient) {
     ctx.save(); ctx.beginPath(); ctx.rect(a.x, a.y, b.x-a.x, b.y-a.y); ctx.clip();
     drawAmbienti(); drawPencil(); drawSegments(); drawPilastri(); drawScale(); drawOpenings(); drawLabels();
     ctx.restore();
-    drawScaleBar(den, Hl);
+    drawScaleBar(den, Hl); drawWallLegend(Wl, Hl);
   } finally {
     PLAY = null;
     ctx = sv.ctx; W = sv.W; H = sv.H; C = sv.C; PRINT = sv.PRINT;
@@ -3636,6 +3690,26 @@ function drawScaleBar(den, Hl) {
   ctx.restore();
 }
 
+// legenda dei tratti dei muri nel piede della pagina, a destra: solo le classi presenti, e solo se ce n'e' piu' d'una
+function drawWallLegend(Wl, Hl) {
+  const used = new Set(state.segments.filter(g => state.points[g.a] && state.points[g.b]).map(wallClass));
+  if (used.size < 2) return;
+  const pm = 96/25.4, sw = 8*pm, gap = 3*pm, avail = Wl - 90*pm;          // a sinistra resta la scala grafica
+  ctx.save(); ctx.font = '9px Segoe UI'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#000'; ctx.strokeStyle = '#000';
+  const items = Object.keys(WALL_STYLE).filter(k => used.has(k)).map(k => ({st:WALL_STYLE[k], w:sw + 1.5*pm + ctx.measureText(WALL_STYLE[k].name).width}));
+  const rows = [[]]; let rw = 0;                                             // se non sta su una riga, va su due
+  items.forEach(it => { if (rw && rw + gap + it.w > avail) { rows.push([]); rw = 0; } rows[rows.length-1].push(it); rw += (rw ? gap : 0) + it.w; });
+  rows.forEach((row, r) => {
+    const y = Hl - (rows.length > 1 ? 12 - 4.5*r : 9.5)*pm;
+    let x = Wl - 10*pm - row.reduce((t,it) => t + it.w + gap, -gap);
+    row.forEach(({st, w}) => {
+      ctx.lineWidth = st.w*pm; ctx.setLineDash(st.dash.map(v => v*pm));
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x+sw, y); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillText(st.name, x + sw + 1.5*pm, y); x += w + gap;
+    });
+  });
+  ctx.restore();
+}
 // il JPEG del canvas non porta la risoluzione: la si scrive nell'intestazione JFIF (300 dpi), cosi' si stampa in scala
 function jfifDpi(b, dpi) {
   if (b.length>20 && b[0]===0xFF && b[1]===0xD8 && b[2]===0xFF && b[3]===0xE0 && b[6]===0x4A && b[7]===0x46) {
@@ -3771,22 +3845,20 @@ function exportDXF() {
     }
   });
 
-  // tabella ambienti: nome, area, altezza, volume e totali, utile per controllare al volo errori o dimenticanze
-  if (state.ambienti.length) {
-    const bx = Math.max(...state.points.map(p=>p.x), 0) + 1;
+  // tabella ambienti, la stessa delle esportazioni (vedi TABLES): utile per controllare al volo errori o dimenticanze.
+  // Una colonna di testi per voce, larga quanto il testo piu' lungo; m² e m³ diventano mq e mc per i CAD
+  const ta = ambTable();
+  if (ta) {
+    const tv = tableView(ta, true), all = [tv.head].concat(tv.rows).map(r => r.map(s => s.replace('m²','mq').replace('m³','mc')));
+    const hT = 0.11, rowH = 0.22, bx = Math.max(...state.points.map(p=>p.x), 0) + 1;
+    const ws = all[0].map((_,j) => Math.max(...all.map(r => r[j].length))*hT*0.62 + 0.25);
     let by = Math.max(...state.points.map(p=>p.y), 0);
-    const rowH = 0.22;
     text('TABELLE', bx, by, 0.16, 'AMBIENTI', false); by -= rowH*1.4;
-    let totArea = 0, totVol = 0;
-    state.ambienti.forEach(a => {
-      const net = ambNet(a), vol = net*a.h;
-      totArea += net; if (!ambNoVol(a)) totVol += vol;
-      text('TABELLE', bx, by, 0.11,
-           a.name+'  '+net.toFixed(2)+' mq  H '+a.h.toFixed(2)+' m  '+(ambNoVol(a) ? '-' : vol.toFixed(2)+' mc'), false);
+    all.forEach((r,i) => {
+      if (i===all.length-1) by -= rowH*0.4;                                   // stacco prima del totale
+      let x = bx; r.forEach((s,j) => { if (s) text('TABELLE', x, by, hT, s, false); x += ws[j]; });
       by -= rowH;
     });
-    by -= rowH*0.4;
-    text('TABELLE', bx, by, 0.13, 'Totale  '+totArea.toFixed(2)+' mq  '+totVol.toFixed(2)+' mc', false);
   }
 
   // serramenti
@@ -3848,47 +3920,68 @@ function exportDXF() {
   setTip('DXF esportato in formato R12, unità metri. Layer separati per muri, quote, serramenti, pilastri, scale, ambienti (con tabella riassuntiva).');
 }
 
-// elenco serramenti in CSV (apribile in Excel): dimensioni sempre presenti, dati energetici solo dove compilati
+// ═══════════════════════════════════════════════════════════
+//  TABELLE: una sola fonte per pagine JPG/PDF, CSV e DXF. Ogni tabella da' {head, rows, detail}: detail = colonne
+//  che vanno solo nel CSV (in pagina non entrano). Le colonne senza dati spariscono ovunque (tableView).
+//  data() null = tabella assente: nel menu di esportazione non compare.
+// ═══════════════════════════════════════════════════════════
 const OP_TXT = {
   tipo:{F:'Finestra', PF:'Porta-finestra', P:'Porta'}, vetro:{S:'Singolo', D:'Doppio', T:'Triplo'},
   telaio:{All:'Alluminio', PVC:'PVC', Leg:'Legno'}, osc:{pers:'Persiana', avv:'Avvolgibile', scuri:'Scuri', no:'Nessuno'}, si:{si:'Sì', no:'No'},
 };
-function exportOpeningsCSV() {
-  hideAllMenus();
-  if (!state.openings.length) { setTip('Nessun serramento da esportare.'); return; }
-  const {tipo:TIPO, vetro:VETRO, telaio:TELAIO, osc:OSC, si:SI} = OP_TXT;
-  const head = ['Label','Tipo','Larghezza foro (m)','Altezza foro (m)','Altezza sottofinestra (m)','Profondità nicchia (m)',
-    'Vetro','Spessore vetro (mm)','Distanziatore','Cassonetto','Cassonetto isolato','Cassonetto H (cm)','Cassonetto Prof (cm)',
-    'Telaio','Spessore telaio (mm)','Oscurante','Vetri (numero)','Pannelli (numero)','Larghezza specchiatura (m)','Altezza specchiatura (m)',
-    'Superficie bucatura (mq)','Superficie vetrata (mq)','Superficie telaio (mq)','Note'];
-  const rows = [head];
-  state.openings.forEach(op => {
-    const e = op.energy || {}, ar = openingAreas(op), gl = openingGlass(op);     // specchiatura scritta a mano o calcolata dalla bucatura
-    rows.push([
-      op.label, TIPO[op.type]||op.type,
-      op.width.toFixed(2), op.hb!=null ? (+op.hb).toFixed(2) : '',
-      (op.type==='F' && op.h0) ? (+op.h0).toFixed(2) : '', op.spessore ? (+op.spessore).toFixed(2) : '',
-      e.vetro ? VETRO[e.vetro] : '', e.spVetro ?? '', e.distanz || '',
-      e.cass ? SI[e.cass] : '', e.cassIso ? SI[e.cassIso] : '', e.cassH ?? '', e.cassP ?? '',
-      e.telaio ? TELAIO[e.telaio] : '', e.spTelaio ?? '', e.oscurante ? OSC[e.oscurante] : '',
-      e.vetri ?? '', e.pannelli ?? '', gl ? gl.L.toFixed(3) : '', gl ? gl.H.toFixed(3) : '',
-      ar.bucatura.toFixed(2), ar.vetrata!=null ? ar.vetrata.toFixed(2) : '', ar.telaio!=null ? ar.telaio.toFixed(2) : '',
-      e.note || '',
-    ]);
-  });
-  downloadCSV(stamp()+'_serramenti.csv', rows);
-  setTip('Elenco serramenti esportato (CSV, apribile in Excel): '+state.openings.length+' righe.');
+const TABLES = [
+  {id:'amb',  title:'Ambienti',               file:'ambienti',               data:ambTable},
+  {id:'serr', title:'Serramenti',             file:'serramenti',             data:openingsTable},
+  {id:'comm', title:'Superficie commerciale', file:'superficie_commerciale', data:commTable},
+];
+// colonne da mostrare: via quelle senza dati (le righe dei totali non contano) e, in pagina, quelle di dettaglio.
+// Decimali con la virgola, come li legge Excel in italiano.
+function tableView(d, page) {
+  const filled = v => v!=null && v!=='' && v!=='-';
+  const keep = d.head.map((_,j) => !(page && (d.detail||[]).includes(j)) && d.rows.some(r => !/^Totale/.test(r[0]) && filled(r[j])));
+  const txt = v => { const s = v==null ? '' : String(v); return /^-?\d+\.\d+( \(\d+\))?$/.test(s) ? s.replace('.', ',') : s; };
+  const pick = r => r.filter((_,j) => keep[j]).map(txt);
+  return {head:pick(d.head), rows:d.rows.map(pick)};
 }
-
+function ambTable() {
+  if (!state.ambienti.length) return null;
+  const cuts = wallCuts(), f = v => v.toFixed(2), T = {area:0, vol:0, lorde:0, ap:0, nette:0};
+  const rows = state.ambienti.map(a => {
+    const net = ambNet(a), pw = ambWalls(a, cuts), vol = ambNoVol(a) ? null : net*a.h;
+    T.area += net; if (vol!=null) T.vol += vol;
+    if (pw) { T.lorde += pw.lorde; T.ap += pw.ap; T.nette += pw.nette; }
+    return [a.name, a.category ? COMM_CAT[a.category].label : '', f(net), f(a.h), vol!=null ? f(vol) : '-',
+            pw ? f(pw.per) : '-', pw ? f(pw.lorde) : '-', pw ? f(pw.ap)+(pw.n ? ' ('+pw.n+')' : '') : '-', pw ? f(pw.nette) : '-'];
+  });
+  rows.push(['Totale', '', f(T.area), '', f(T.vol), '', f(T.lorde), f(T.ap), f(T.nette)]);
+  return {head:['Ambiente','Categoria','Superficie (m²)','Altezza (m)','Volume (m³)','Perimetro (m)','Pareti lorde (m²)','Aperture (m²)','Pareti nette (m²)'], rows};
+}
+// serramenti: dimensioni sempre, dati energetici dove compilati; specchiatura scritta a mano o calcolata dalla bucatura
+function openingsTable() {
+  if (!state.openings.length) return null;
+  const f = (v, d) => (+v).toFixed(d||2), T = {buc:0, vetr:0, tel:0}, X = OP_TXT;
+  const rows = state.openings.map(op => {
+    const e = op.energy || {}, ar = openingAreas(op), gl = openingGlass(op);
+    T.buc += ar.bucatura; T.vetr += ar.vetrata || 0; T.tel += ar.telaio || 0;
+    return [op.label, X.tipo[op.type]||op.type, f(op.width), f(opHb(op)), op.type==='F' && op.h0 ? f(op.h0) : '', op.spessore ? f(op.spessore) : '',
+            X.vetro[e.vetro]||'', e.spVetro ?? '', e.distanz || '', X.si[e.cass]||'', X.si[e.cassIso]||'', e.cassH ?? '', e.cassP ?? '',
+            X.telaio[e.telaio]||'', e.spTelaio ?? '', X.osc[e.oscurante]||'', e.vetri ?? '', e.pannelli || '',
+            gl ? f(gl.L, 3) : '', gl ? f(gl.H, 3) : '', f(ar.bucatura), ar.vetrata!=null ? f(ar.vetrata) : '', ar.telaio!=null ? f(ar.telaio) : '', e.note || ''];
+  });
+  rows.push(['Totale', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', f(T.buc), T.vetr ? f(T.vetr) : '', T.tel ? f(T.tel) : '', '']);
+  return {head:['Serramento','Tipo','Larghezza (m)','Altezza (m)','Davanzale (m)','Profondità nicchia (m)','Vetro','Spessore vetro (mm)','Distanziatore',
+                'Cassonetto','Cassonetto isolato','Cassonetto H (cm)','Cassonetto prof. (cm)','Telaio','Spessore telaio (mm)','Oscurante','Vetri','Pannelli',
+                'Larghezza specchiatura (m)','Altezza specchiatura (m)','Bucatura (m²)','Vetrata (m²)','Telaio (m²)','Note'],
+          rows, detail:[5,7,8,10,11,12,14,18,19]};
+}
 // CSV per Excel italiano: separatore ';', BOM per gli accenti, virgolette solo dove servono
 function downloadCSV(name, rows) {
   const csv = rows.map(r => r.map(c => { const s = String(c); return /[;"\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; }).join(';')).join('\r\n');
   download(name, '﻿'+csv, 'text/csv');
 }
-
 // superficie commerciale, con i coefficienti Tecnoborsa gia' applicati (vedi COMM_CAT): un totale per categoria
 // (scaglione oltre i 25 mq compreso), piu' i muri classificati e il promemoria delle parti condominiali.
-// Righe con intestazione, per il CSV e per la tabella in pagina; null se nulla e' classificato.
+// Tabella come le altre (vedi TABLES); null se nulla e' classificato.
 function commTable() {
   const classificato = state.ambienti.some(a => a.category) || state.segments.some(s => s.commType);
   if (!classificato) return null;
@@ -3928,7 +4021,7 @@ function commTable() {
   }
   const nDubbi = state.segments.filter(g => g.cv==='dubbio').length;
 
-  const rows = [['Categoria','Incidenza','Mq rilevati','Mq commerciali','Note']];
+  const head = ['Categoria','Incidenza','Mq rilevati','Mq commerciali','Note'], rows = [];
   let totComm = 0;
   Object.keys(COMM_CAT).forEach(key => {
     const c = COMM_CAT[key], S = tot[key]||0;
@@ -3952,65 +4045,19 @@ function commTable() {
   if (nDubbi) rows.push(['Attenzione', '', '', '', nDubbi+' muri non assegnati: tipo proposto dall\'app, non ancora validato']);
   rows.push(['Parti condominiali', '', '', '', 'quota millesimale: da inserire a mano, non calcolabile dal rilievo']);
   rows.push(['Totale mq commerciali', '', '', totComm.toFixed(2), '']);
-  return {rows, totComm, muriLordo, nDubbi};
-}
-function exportSuperficieCommerciale() {
-  hideAllMenus();
-  const d = commTable();
-  if (!d) { setTip('Niente da esportare: classifica almeno un ambiente o un muro (Categoria / Spessore e tipo).'); return; }
-  const {rows, totComm, muriLordo, nDubbi} = d;
-  downloadCSV(stamp()+'_superficie_commerciale.csv', rows);
-  setTip('Superficie commerciale esportata (CSV): '+totComm.toFixed(2)+' mq commerciali'+(muriLordo!==null ? ', al lordo dei muri' : ', muri interni esclusi (manca il contorno esterno)')+
-         (nDubbi ? '. Attenzione: '+nDubbi+' muri non assegnati.' : '.'));
-}
-
-// ═══════════════════════════════════════════════════════════
-//  TABELLE IN PAGINA (JPG/PDF): A4 orizzontale a 300 dpi, ogni tabella parte su una pagina nuova e continua
-//  sulle seguenti. Compaiono solo le tabelle che il rilievo ha (data() null = tabella assente).
-// ═══════════════════════════════════════════════════════════
-const TABLES = [
-  {id:'amb',  title:'Ambienti',               data:ambTable},
-  {id:'serr', title:'Serramenti',             data:openingsTable},
-  {id:'comm', title:'Superficie commerciale', data:() => { const d = commTable(); return d && {head:d.rows[0], rows:d.rows.slice(1)}; }},
-];
-function ambTable() {
-  if (!state.ambienti.length) return null;
-  const cuts = wallCuts(), f = v => v.toFixed(2), T = {area:0, vol:0, lorde:0, ap:0, nette:0};
-  const rows = state.ambienti.map(a => {
-    const net = ambNet(a), pw = ambWalls(a, cuts), vol = ambNoVol(a) ? null : net*a.h;
-    T.area += net; if (vol!=null) T.vol += vol;
-    if (pw) { T.lorde += pw.lorde; T.ap += pw.ap; T.nette += pw.nette; }
-    return [a.name, a.category ? COMM_CAT[a.category].label : '', f(net), f(a.h), vol!=null ? f(vol) : '-',
-            pw ? f(pw.per) : '-', pw ? f(pw.lorde) : '-', pw ? f(pw.ap)+(pw.n ? ' ('+pw.n+')' : '') : '-', pw ? f(pw.nette) : '-'];
-  });
-  rows.push(['Totale', '', f(T.area), '', f(T.vol), '', f(T.lorde), f(T.ap), f(T.nette)]);
-  return {head:['Ambiente','Categoria','Superficie (m²)','Altezza (m)','Volume (m³)','Perimetro (m)','Pareti lorde (m²)','Aperture (m²)','Pareti nette (m²)'], rows};
-}
-function openingsTable() {
-  if (!state.openings.length) return null;
-  const f = v => v.toFixed(2), T = {buc:0, vetr:0};
-  const rows = state.openings.map(op => {
-    const e = op.energy || {}, ar = openingAreas(op);
-    T.buc += ar.bucatura; T.vetr += ar.vetrata || 0;
-    return [op.label, OP_TXT.tipo[op.type]||op.type, f(op.width), f(opHb(op)), op.type==='F' && op.h0 ? f(+op.h0) : '',
-            OP_TXT.vetro[e.vetro]||'', OP_TXT.telaio[e.telaio]||'', OP_TXT.osc[e.oscurante]||'', e.cass ? OP_TXT.si[e.cass] : '',
-            e.vetri ?? '', e.pannelli || '', f(ar.bucatura), ar.vetrata!=null ? f(ar.vetrata) : '', ar.telaio!=null ? f(ar.telaio) : '', e.note || ''];
-  });
-  rows.push(['Totale', '', '', '', '', '', '', '', '', '', '', f(T.buc), T.vetr ? f(T.vetr) : '', '', '']);
-  return {head:['Serramento','Tipo','Larghezza (m)','Altezza (m)','Davanzale (m)','Vetro','Telaio','Oscurante','Cassonetto','Vetri','Pannelli','Bucatura (m²)','Vetrata (m²)','Telaio (m²)','Note'], rows};
+  return {head, rows};
 }
 // pagine (canvas) delle tabelle scelte, numerate in fondo
 function tablePages(ids) {
   const mm = 300/25.4, pw = Math.round(297*mm), ph = Math.round(210*mm), M = Math.round(12*mm), pad = Math.round(1.5*mm);
   const rowH = Math.round(6.5*mm), headH = Math.round(11*mm), top = M + Math.round(12*mm), avail = pw - 2*M;
   const font = (pt, b) => (b ? 'bold ' : '')+Math.round(pt*300/72)+'px Segoe UI';
-  const txt = v => { const s = v==null ? '' : String(v); return /^-?\d+\.\d+( \(\d+\))?$/.test(s) ? s.replace('.', ',') : s; };   // decimali con la virgola
   const isNum = s => /^-?[\d.,]+( \(\d+\))?$/.test(s);
   const fit = (c, s, w) => { if (c.measureText(s).width <= w) return s; while (s && c.measureText(s+'…').width > w) s = s.slice(0,-1); return s+'…'; };
   const day = new Date().toLocaleDateString('it-IT'), pages = [];
   TABLES.filter(t => ids.includes(t.id)).forEach(t => {
     const d = t.data(); if (!d) return;
-    const head = d.head.map(txt), rows = d.rows.map(r => r.map(txt));
+    const {head, rows} = tableView(d, true);
     const meas = document.createElement('canvas').getContext('2d');
     // larghezze: il testo piu' lungo della colonna (intestazione a parole, va su due righe); se non entrano si accorciano le piu' larghe
     const ws = head.map((h,j) => {
@@ -4068,20 +4115,25 @@ function canvasJpg(cv) {
     b.arrayBuffer().then(buf => { const jpg = new Uint8Array(buf); jfifDpi(jpg, 300); res({jpg, wpx:cv.width, hpx:cv.height}); });
   }, 'image/jpeg', 0.92));
 }
-// menu File: "tab" = solo tabelle (PDF o JPG), "full" = PDF unico con il disegno in scala e dietro le tabelle
+// menu File: "tab" = solo tabelle (PDF, JPG o CSV), "full" = PDF unico con il disegno in scala e dietro le tabelle
 function exportTablesMenu(mode) {
   hideAllMenus();
   const av = TABLES.filter(t => t.data());
   if (mode==='tab' && !av.length) { setTip('Nessuna tabella da esportare: servono ambienti, serramenti o muri e ambienti classificati.'); return; }
   const fields = av.map(t => ({label:t.title, id:'t_'+t.id, type:'check', value:'1'}));
   if (mode==='tab') fields.push({label:'Formato', id:'fmt', type:'select', value:'pdf',
-    options:[{value:'pdf', label:'PDF - un file con tutte le pagine'}, {value:'jpg', label:'JPG - un\'immagine per pagina'}]});
+    options:[{value:'pdf', label:'PDF - un file con tutte le pagine'}, {value:'jpg', label:'JPG - un\'immagine per pagina'},
+             {value:'csv', label:'CSV - per Excel, un file per tabella con tutte le colonne'}]});
   askDialog(mode==='tab' ? 'Esporta tabelle' : 'Esporta rilievo completo', fields,
     mode==='tab' ? 'Ci sono solo le tabelle che il rilievo ha: togli la spunta a quelle da non esportare.'
                  : 'Un solo PDF: il disegno in scala, poi le tabelle spuntate. Dopo OK scegli zona e scala del disegno.', v => {
     const ids = av.filter(t => v['t_'+t.id]).map(t => t.id);
     if (mode==='full') { startExport('full'); if (state.exp) state.exp.tables = ids; return; }
     if (!ids.length) { setTip('Nessuna tabella spuntata.'); return; }
+    if (v.fmt==='csv') {
+      av.filter(t => ids.includes(t.id)).forEach(t => { const tv = tableView(t.data(), false); downloadCSV(stamp()+'_'+t.file+'.csv', [tv.head].concat(tv.rows)); });
+      setTip('Tabelle esportate in CSV: '+ids.length+(ids.length===1 ? ' file.' : ' file, uno per tabella.')); return;
+    }
     Promise.all(tablePages(ids).map(canvasJpg)).then(pp => {
       pp = pp.filter(Boolean);
       if (v.fmt==='jpg') pp.forEach((p,k) => download(stamp()+'_tabelle_'+String(k+1).padStart(2,'0')+'.jpg', p.jpg, 'image/jpeg'));
@@ -5223,6 +5275,90 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 window.addEventListener('pagehide', persistNow);
 
 // ═══════════════════════════════════════════════════════════
+//  LEGENDA dei colori dei muri: il pulsante compare solo con almeno un muro classificato, il riquadro e' chiuso di default
+// ═══════════════════════════════════════════════════════════
+function toggleLegend() {
+  const b = $id('leg-box'), open = b.style.display!=='block';
+  if (open) b.innerHTML = Object.keys(WALL_STYLE).map(k => '<div><i style="border-top-color:'+COL_SCREEN[WALL_STYLE[k].col]+(k==='nd' ? ';border-top-style:dashed' : '')+'"></i>'+WALL_STYLE[k].name+'</div>').join('');
+  b.style.display = open ? 'block' : 'none';
+}
+
+// ═══════════════════════════════════════════════════════════
+//  GUIDA "Cosa devi fare oggi?": percorsi di pochi passi sugli strumenti veri. Ogni passo evidenzia i pulsanti da
+//  toccare (el) e va avanti da solo quando l'azione e' fatta (done passa da falso a vero); senza done, "Avanti".
+//  Si apre col pulsante ? e, una volta sola, a rilievo vuoto. I testi si correggono qui, senza toccare altro.
+// ═══════════════════════════════════════════════════════════
+const measured = () => state.segments.some(g => g.ok);
+const GUIDE = [
+  {title:'Rilievo da planimetria catastale', sub:'Importi la catastale, l\'app ricalca gli ambienti, tu correggi le misure', steps:[
+    {t:'Apri File e scegli "Importa planimetria" (PDF o immagine), oppure "Fotografa planimetria" se hai il foglio. Seleziona la pianta e metti in scala su una misura nota.', el:['#btn-file','#fm-import','#fm-photo'], done:() => !!state.underlay},
+    {t:'Nel pannello Base tocca "Ricalca ambienti", regola larghezza delle porte e semplificazione, poi "Applica al disegno".', el:['#base-ricalca','#walls-apply'], done:() => state.ambienti.length>0},
+    {t:'I muri fucsia hanno la classe proposta dall\'app: tocca "Muri non assegnati" in basso, togli dalla selezione quelli sbagliati e conferma gli altri.', el:['#sb-dubbi'], done:() => !state.segments.some(g => g.cv==='dubbio')},
+    {t:'In loco tocca il numero di una quota e scrivi la misura rilevata: il muro si adegua e la quota diventa verde.', done:measured},
+    {t:'Dai il nome agli ambienti: tocca un ambiente, "Modifica ambiente", e scegli dall\'elenco.', done:() => state.ambienti.some(a => roomBase(a.name))},
+  ]},
+  {title:'Rilievo da zero in loco', sub:'Disegni muri e stanze sul posto e scrivi le misure', steps:[
+    {t:'Disegna, poi "Muro": tocca il punto di partenza e ogni angolo, chiudi sul primo punto e nasce l\'ambiente. Per una stanza rettangolare c\'è "Stanza rettangolare".', el:['#btn-g-draw','#ti-wall','#ti-room'], done:() => state.ambienti.length>0},
+    {t:'Tocca il numero di una quota e scrivi la misura rilevata: il muro si adegua e la quota diventa verde.', done:measured},
+    {t:'Un punto che non riesci a misurare in squadra? Disegna, "Trilatera": due distanze da punti già rilevati lo trovano.', el:['#btn-g-draw','#ti-trilatere']},
+    {t:'Inserisci, poi Finestra, Porta-finestra o Porta, e tocca il muro dove va.', el:['#btn-g-ins','#ti-opening-F','#ti-opening-PF','#ti-opening-P'], done:() => state.openings.length>0},
+    {t:'Il rilievo resta solo in questo browser: archivialo con File, "Salva progetto".', el:['#btn-file','#fm-save']},
+  ]},
+  {title:'Serramenti e dati energetici', sub:'Misure, vetro, telaio e cassonetto per l\'APE', steps:[
+    {t:'Inserisci, poi Finestra o Porta-finestra, e tocca il muro dove va.', el:['#btn-g-ins','#ti-opening-F','#ti-opening-PF'], done:() => state.openings.length>0},
+    {t:'Tocca il serramento, "Modifica misure": larghezza, altezza e davanzale rilevati.'},
+    {t:'Tocca il serramento, "Dati energetici": vetro, telaio, cassonetto e specchiature. Lo schema ti dice se i numeri tornano con la bucatura.', done:() => state.openings.some(o => o.energy)},
+    {t:'Il serramento dopo propone gli stessi dati: se sono uguali confermi con un tocco.'},
+    {t:'File, "Esporta tabelle": l\'elenco dei serramenti in PDF, oppure in CSV con tutte le colonne.', el:['#btn-file','#fm-tables']},
+  ]},
+  {title:'Superficie commerciale', sub:'Categorie degli ambienti e classi dei muri, coefficienti già applicati', steps:[
+    {t:'Tocca un ambiente, "Modifica ambiente", Categoria: cambi solo balconi, cantine, box e simili. Gli altri restano Superficie utile.'},
+    {t:'Tocca un muro, "Spessore e tipo": classe (Esterno, verso altre unità, verso vano scala) e spessore.', done:() => state.segments.some(g => g.commType)},
+    {t:'Con il ricalco della catastale c\'è il contorno esterno, e i muri entrano al lordo in automatico.'},
+    {t:'File, "Esporta tabelle", Superficie commerciale.', el:['#btn-file','#fm-tables']},
+  ]},
+  {title:'Esportare i risultati', sub:'Disegno in scala, tabelle, DXF per il CAD', steps:[
+    {t:'File, "Esporta rilievo completo": un PDF con il disegno in scala e le tabelle che scegli.', el:['#btn-file','#fm-full']},
+    {t:'File, "Esporta tabelle": solo le tabelle, in PDF, JPG o CSV per Excel.', el:['#btn-file','#fm-tables']},
+    {t:'File, "Esporta DXF": il disegno per AutoCAD e gli altri CAD, in metri.', el:['#btn-file','#fm-dxf']},
+    {t:'File, "Salva progetto": il file .json per riprendere il lavoro o passarlo a un collega.', el:['#btn-file','#fm-save']},
+  ]},
+];
+let guide = null, guideTimer = null;          // {p: percorso, s: passo, was: done() all'inizio del passo}
+function guideMenu() {
+  hideAllMenus(); guideEnd();
+  try { localStorage.setItem('app_rilievo_guida', '1'); } catch (e) {}
+  const c = $id('guide-card');
+  c.innerHTML = '<h4>Cosa devi fare oggi?</h4>'+GUIDE.map((p,i) => '<button class="gb" onclick="guideStart('+i+')">'+p.title+'<small>'+p.sub+'</small></button>').join('')+
+    '<div style="font-size:12px;color:#9fb3d1;margin-top:6px">Ogni voce dei menu ha sotto una riga che dice a cosa serve. La guida si riapre da ?</div>'+
+    '<div class="row"><span></span><button onclick="guideEnd()">Non ora</button></div>';
+  c.style.display = 'block';
+}
+function guideStart(i) { guide = {p:GUIDE[i], s:0}; guideShow(); clearInterval(guideTimer); guideTimer = setInterval(guideCheck, 400); }
+function guideShow() {
+  document.querySelectorAll('.guide-hi').forEach(e => e.classList.remove('guide-hi'));
+  const p = guide.p, st = p.steps[guide.s];
+  (st.el||[]).forEach(sel => { const e = document.querySelector(sel); if (e) e.classList.add('guide-hi'); });
+  guide.was = st.done ? st.done() : true;     // gia' fatto all'inizio del passo: si va avanti a mano, non salta da solo
+  $id('guide-card').innerHTML = '<h4>'+p.title+' - passo '+(guide.s+1)+' di '+p.steps.length+'</h4><div>'+st.t+'</div>'+
+    '<div class="row"><button onclick="guideEnd()">Esci</button><button onclick="guideNext()">'+(guide.s+1 < p.steps.length ? 'Avanti' : 'Fine')+'</button></div>';
+}
+function guideCheck() {
+  if (!guide) return;
+  const st = guide.p.steps[guide.s];
+  if (st.done && !guide.was && st.done()) guideNext();
+}
+function guideNext() {
+  if (++guide.s >= guide.p.steps.length) { guideEnd(); setTip('Percorso finito. La guida si riapre dal pulsante ?'); return; }
+  guideShow();
+}
+function guideEnd() {
+  guide = null; clearInterval(guideTimer);
+  document.querySelectorAll('.guide-hi').forEach(e => e.classList.remove('guide-hi'));
+  $id('guide-card').style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════════════════
 //  AVVIO
 // ═══════════════════════════════════════════════════════════
 try { if (localStorage.getItem('app_rilievo_menu')==='0') { document.getElementById('toolbar').classList.add('hidden'); document.getElementById('menu-tab').style.display='block'; } } catch (e) {}
@@ -5234,32 +5370,41 @@ setTool('select');
 updateStatus();
 updateZoomLabel();
 if (recovered) { centerView(); setTip('Rilievo precedente ripristinato: '+state.points.length+' punti. Usa File → Salva progetto per archiviarlo.'); }
-else { flagSaved('nuovo rilievo'); draw(); }
+else {
+  flagSaved('nuovo rilievo'); draw();
+  let guided = null; try { guided = localStorage.getItem('app_rilievo_guida'); } catch (e) {}
+  if (!guided) guideMenu();                    // prima volta a rilievo vuoto: "Cosa devi fare oggi?", poi solo dal pulsante ?
+}
 
 // ═══════════════════════════════════════════════════════════
 //  WEBAPP INSTALLABILE (solo se servita da internet, non da file locale)
 // ═══════════════════════════════════════════════════════════
 // versione e novita' vengono scritte da pubblica_app.py leggendo la prima voce di CHANGELOG.md
-const APP_VERSION = '2.02';
-const APP_NOTE = ["Nome dell'ambiente da elenco (Soggiorno, Cucina, Camera, Bagno...): Camera, Bagno, Disimpegno, Corridoio e Ripostiglio partono da 1, gli altri prendono il numero solo se si ripetono. \"Altro\" per scriverlo a mano", "Muri in quattro classi, ognuna col suo colore: Interno (blu), Esterno (viola), Verso altre unità riscaldate (verde), Verso non riscaldati o vano scala (giallo). Fucsia tratteggiato = non assegnato, contato nella barra in basso. La porta d'ingresso propone \"vano scala\"", "Pareti di ogni ambiente: lorde (vuoto per pieno) e nette, cioè meno finestre e porte. Una porta tra due stanze si toglie da entrambe", "Nuovi export \"Tabelle\" (PDF o JPG) e \"Rilievo completo\" (un solo PDF con il disegno in scala e le tabelle): si spuntano le tabelle che servono tra quelle presenti (ambienti, serramenti, superficie commerciale)", "Dati energetici: schema del serramento (beta) che si aggiorna mentre scrivi e avvisa se le specchiature non tornano con la bucatura"];
+const APP_VERSION = '2.03';
+const APP_NOTE = ["Guida: pulsante \"?\" con \"Cosa devi fare oggi?\" e cinque percorsi guidati che evidenziano i pulsanti da toccare e vanno avanti da soli. Ogni voce dei menu ha sotto una riga che dice a cosa serve", "Tabelle da una sola fonte per PDF, JPG, CSV e DXF; le colonne senza dati spariscono. Il CSV è passato dentro \"Esporta tabelle\", con i decimali con la virgola per Excel e tutte le colonne di dettaglio", "Pulsante 🎨 con la legenda dei colori dei muri: compare solo se ci sono muri classificati", "PDF e JPG del disegno: le classi dei muri si leggono dal tratto (continuo, tratto-punto, tratteggio, puntini), con la legenda nel piede", "I progetti di versioni precedenti si aprono sempre e vengono aggiornati: una finestra dice cosa è cambiato e cosa controllare nel disegno"];
 const IS_LOCAL = APP_VERSION.startsWith('__');
 document.getElementById('menu-version').textContent = IS_LOCAL ? 'Versione locale' : 'ℹ Versione '+APP_VERSION+' - novità';
-function showNews(title) {
+// finestra con un elenco puntato (novita', note di aggiornamento del progetto); extra = secondo elenco con titoletto
+function listDialog(title, items, extra) {
   hideAllMenus();
-  askDialog(title || 'Novità della versione '+APP_VERSION, [], '', null);
-  const ul = document.createElement('ul');
-  ul.style.cssText = 'margin:0 0 8px 18px; line-height:1.6; font-size:13px;';
-  (APP_NOTE.length ? APP_NOTE : ['Nessuna nota per questa versione.']).forEach(t => {
-    const li = document.createElement('li'); li.textContent = t; ul.appendChild(li);
-  });
-  document.getElementById('dialog-fields').appendChild(ul);
+  askDialog(title, [], '', null);
+  const box = document.getElementById('dialog-fields'), ul = list => {
+    const u = document.createElement('ul'); u.style.cssText = 'margin:0 0 8px 18px; line-height:1.6; font-size:13px;';
+    list.forEach(t => { const li = document.createElement('li'); li.textContent = t; u.appendChild(li); }); box.appendChild(u);
+  };
+  ul(items);
+  if (extra && extra.items.length) { const h = document.createElement('b'); h.textContent = extra.title; h.style.cssText = 'display:block;margin:6px 0 4px;font-size:13px'; box.appendChild(h); ul(extra.items); }
 }
-// all'apertura dopo un aggiornamento mostra una volta le novita'
-if (!IS_LOCAL) {
+function showNews(title, extra) {
+  listDialog(title || 'Novità della versione '+APP_VERSION, APP_NOTE.length ? APP_NOTE : ['Nessuna nota per questa versione.'], extra);
+}
+// all'apertura dopo un aggiornamento mostra una volta le novita'; il rilievo ritrovato nel browser, se aggiornato, porta le sue note
+{
   let seen = null;
-  try { seen = localStorage.getItem('app_rilievo_versione'); } catch (e) {}
-  if (seen && seen !== APP_VERSION) showNews('App aggiornata alla versione '+APP_VERSION);
-  try { localStorage.setItem('app_rilievo_versione', APP_VERSION); } catch (e) {}
+  if (!IS_LOCAL) { try { seen = localStorage.getItem('app_rilievo_versione'); } catch (e) {} try { localStorage.setItem('app_rilievo_versione', APP_VERSION); } catch (e) {} }
+  const extra = {title:'Il tuo rilievo', items:startNotes};
+  if (seen && seen !== APP_VERSION) showNews('App aggiornata alla versione '+APP_VERSION, extra);
+  else if (startNotes.length) listDialog('Rilievo aggiornato', startNotes);
 }
 let installPrompt = null;
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
