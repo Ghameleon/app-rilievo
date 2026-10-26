@@ -34,6 +34,11 @@
       display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
     }
     .tool-btn .ic { font-size:20px; }
+    #btn-view .ic { font-size:12px; font-weight:bold; }
+    #btn-view.prog { background:#8a1c1c; border-color:#ff3b3b; }
+    body.prog #canvas { box-shadow:inset 0 0 0 3px #ff3b3b; }
+    #sb-view { cursor:pointer; }
+    body.prog #sb-view { color:#ff3b3b; font-weight:bold; }
     .tool-btn .cap { display:none; font-size:10px; max-width:100%; overflow:hidden; white-space:nowrap; }
     #toolbar.bottom .tool-btn { flex:1 1 0; width:auto; min-width:0; height:50px; }
     #toolbar.bottom .tool-btn .cap { display:block; }
@@ -202,6 +207,7 @@
   <button class="tool-btn green" title="Annulla" onclick="undo()"><span class="ic">↩</span><span class="cap">Annulla</span></button>
   <button class="tool-btn green" title="Centra vista" onclick="centerView()"><span class="ic">⌂</span><span class="cap">Centra</span></button>
   <button class="tool-btn green" id="btn-file" title="File" onclick="toggleMenu('file-submenu',this)"><span class="ic">💾</span><span class="cap">File</span></button>
+  <button class="tool-btn" id="btn-view" title="Stato di fatto / Progetto: tocca per cambiare" onclick="toggleView()"><span class="ic">SdF</span><span class="cap">Stato di fatto</span></button>
 </div>
 <button id="menu-tab" title="Mostra il menu" onclick="toggleMenuBar(true)">☰</button>
 
@@ -214,6 +220,7 @@
   <div class="menu-item tool-item" id="ti-measure" onclick="pickTool('measure')"><span class="ti">📏</span><span class="tt"><b>Misura</b><small>Legge la distanza tra due punti</small></span></div>
   <div class="menu-item tool-item" id="ti-split" onclick="pickTool('split')"><span class="ti">✂</span><span class="tt"><b>Spezza</b><small>Divide un muro con un nuovo punto</small></span></div>
   <div class="menu-item tool-item" id="ti-point" onclick="pickTool('point')"><span class="ti">+</span><span class="tt"><b>Punto</b><small>Aggiunge un punto libero</small></span></div>
+  <div class="menu-item tool-item" id="ti-roompts" onclick="pickTool('roompts')"><span class="ti">⬠</span><span class="tt"><b>Ambiente da punti</b><small>Tocca i vertici in ordine: nel Progetto, per le stanze unite</small></span></div>
   <div class="menu-item tool-item" id="ti-connect" onclick="pickTool('connect')"><span class="ti">/</span><span class="tt"><b>Collega</b><small>Unisce due punti con una linea</small></span></div>
 </div>
 <div id="group-ins" class="floating-menu">
@@ -247,44 +254,47 @@
   <div class="menu-item hi" onclick="menuAction('measure')">📏 Misura da qui<small class="md">Distanza da questo punto a un altro</small></div>
   <div class="menu-item"    onclick="menuAction('photo')">📷 Fai foto<small class="md">Foto del dettaglio, resta legata al punto</small></div>
   <div class="menu-item"    onclick="menuAction('note')">📝 Inserisci nota<small class="md">Appunto legato al punto</small></div>
-  <div class="menu-item"    onclick="menuAction('absorb')">⟷ Riassorbi punto nella linea<small class="md">Toglie il vertice: le due linee diventano una</small></div>
+  <div class="menu-item"    data-lock onclick="menuAction('absorb')">⟷ Riassorbi punto nella linea<small class="md">Toglie il vertice: le due linee diventano una</small></div>
   <div class="menu-item"    onclick="menuAction('multi')">➕ Selezione multipla<small class="md">Poi tocca altri elementi per agire su tutti</small></div>
-  <div class="menu-item"    onclick="menuAction('delete')">🗑 Elimina punto<small class="md">Cancella il punto e le sue linee</small></div>
+  <div class="menu-item"    data-lock onclick="menuAction('delete')">🗑 Elimina punto<small class="md">Cancella il punto e le sue linee</small></div>
 </div>
 <div id="opening-context" class="floating-menu">
+  <div class="menu-item hi" data-demo onclick="openingMenuAction('demo')"></div>
   <div class="menu-item" onclick="openingMenuAction('multi')">➕ Selezione multipla<small class="md">Poi tocca altri elementi per agire su tutti</small></div>
-  <div class="menu-item" onclick="openingMenuAction('setdist')">📏 Imposta distanza<small class="md">Posizionalo a una distanza misurata dallo spigolo</small></div>
-  <div class="menu-item" onclick="openingMenuAction('edit')">✎ Modifica misure<small class="md">Larghezza, altezza, davanzale e nome</small></div>
+  <div class="menu-item" data-lock onclick="openingMenuAction('setdist')">📏 Imposta distanza<small class="md">Posizionalo a una distanza misurata dallo spigolo</small></div>
+  <div class="menu-item" data-lock onclick="openingMenuAction('edit')">✎ Modifica misure<small class="md">Larghezza, altezza, davanzale e nome</small></div>
   <div class="menu-item" onclick="openingMenuAction('energy')">📋 Dati energetici<small class="md">Vetro, telaio, cassonetto e specchiature, per l'APE</small></div>
-  <div class="menu-item" onclick="openingMenuAction('delete')">🗑 Elimina<small class="md">Il muro si richiude</small></div>
-  <div class="menu-item" onclick="openingMenuAction('editall')">✎ Modifica tutti quelli dello stesso tipo<small class="md">Stesse misure a tutte le F, PF o P</small></div>
-  <div class="menu-item" onclick="openingMenuAction('renum')">🔢 Rinumera F, PF e P<small class="md">Numeri in ordine, senza buchi</small></div>
-  <div class="menu-item" onclick="openingMenuAction('deldoors')">🗑 Elimina tutte le porte (P)<small class="md">Via in un colpo le porte messe dal ricalco</small></div>
+  <div class="menu-item" data-lock onclick="openingMenuAction('delete')">🗑 Elimina<small class="md">Il muro si richiude</small></div>
+  <div class="menu-item" data-sdf onclick="openingMenuAction('editall')">✎ Modifica tutti quelli dello stesso tipo<small class="md">Stesse misure a tutte le F, PF o P</small></div>
+  <div class="menu-item" data-sdf onclick="openingMenuAction('renum')">🔢 Rinumera F, PF e P<small class="md">Numeri in ordine, senza buchi</small></div>
+  <div class="menu-item" data-sdf onclick="openingMenuAction('deldoors')">🗑 Elimina tutte le porte (P)<small class="md">Via in un colpo le porte messe dal ricalco</small></div>
 </div>
 <div id="seg-context" class="floating-menu">
   <div class="menu-item hi" id="sm-conf" onclick="segMenuAction('confirm')"></div>
+  <div class="menu-item hi" data-demo onclick="segMenuAction('demo')"></div>
   <div class="menu-item" onclick="segMenuAction('multi')">➕ Selezione multipla<small class="md">Poi tocca altri elementi per agire su tutti</small></div>
   <div class="menu-item" onclick="segMenuAction('F')">🪟 Inserisci finestra qui<small class="md">Nel punto toccato</small></div>
   <div class="menu-item" onclick="segMenuAction('PF')">🚪 Inserisci porta-finestra qui<small class="md">Nel punto toccato</small></div>
-  <div class="menu-item" onclick="segMenuAction('move')">✥ Sposta<small class="md">Trascina il muro dove va</small></div>
+  <div class="menu-item" data-lock onclick="segMenuAction('move')">✥ Sposta<small class="md">Trascina il muro dove va</small></div>
   <div class="menu-item" onclick="segMenuAction('thick')">📏 Spessore e tipo<small class="md">Classe (colore) e spessore: servono a superficie commerciale e demolizioni</small></div>
   <div class="menu-item" onclick="segMenuAction('split')">✂ Spezza qui<small class="md">Nuovo vertice nel punto toccato</small></div>
-  <div class="menu-item" onclick="segMenuAction('delete')">🗑 Elimina linea<small class="md">Cancella solo questa linea</small></div>
+  <div class="menu-item" data-lock onclick="segMenuAction('delete')">🗑 Elimina linea<small class="md">Cancella solo questa linea</small></div>
 </div>
 <div id="quota-context" class="floating-menu">
-  <div class="menu-item hi" onclick="quotaMenuAction('set')">✎ Imposta misura<small class="md">Scrivi la misura rilevata: il muro si adegua</small></div>
+  <div class="menu-item hi" data-lock onclick="quotaMenuAction('set')">✎ Imposta misura<small class="md">Scrivi la misura rilevata: il muro si adegua</small></div>
   <div class="menu-item"    id="qm-val"   onclick="quotaMenuAction('validate')">✔ Valida così com'è<small class="md">La misura del disegno è giusta: la quota diventa verde</small></div>
   <div class="menu-item"    id="qm-unval" onclick="quotaMenuAction('unvalidate')">↺ Togli convalida<small class="md">Torna da verificare</small></div>
   <div class="menu-item"    id="qm-reset" onclick="quotaMenuAction('reset')">⌖ Riporta la quota al suo posto<small class="md">Il numero torna accanto al muro</small></div>
 </div>
 <div id="amb-context" class="floating-menu">
-  <div class="menu-item" onclick="ambMenuAction('edit')">✎ Modifica ambiente<small class="md">Nome, altezza e categoria; mostra superficie e pareti</small></div>
-  <div class="menu-item" onclick="ambMenuAction('delete')">🗑 Elimina solo l'ambiente<small class="md">Le linee restano</small></div>
-  <div class="menu-item" onclick="ambMenuAction('deleteall')">🗑 Elimina ambiente e sue linee<small class="md">Anche i muri che non servono ad altri ambienti</small></div>
+  <div class="menu-item hi" data-demo onclick="ambMenuAction('demo')"></div>
+  <div class="menu-item" data-lock onclick="ambMenuAction('edit')">✎ Modifica ambiente<small class="md">Nome, altezza e categoria; mostra superficie e pareti</small></div>
+  <div class="menu-item" data-lock onclick="ambMenuAction('delete')">🗑 Elimina solo l'ambiente<small class="md">Le linee restano</small></div>
+  <div class="menu-item" data-lock onclick="ambMenuAction('deleteall')">🗑 Elimina ambiente e sue linee<small class="md">Anche i muri che non servono ad altri ambienti</small></div>
 </div>
 <div id="entity-context" class="floating-menu">
-  <div class="menu-item" id="ent-edit" onclick="entityMenuAction('edit')">✎ Modifica</div>
-  <div class="menu-item" onclick="entityMenuAction('delete')">🗑 Elimina</div>
+  <div class="menu-item" data-lock id="ent-edit" onclick="entityMenuAction('edit')">✎ Modifica</div>
+  <div class="menu-item" data-lock onclick="entityMenuAction('delete')">🗑 Elimina</div>
 </div>
 
 <div id="dialog-overlay">
@@ -378,12 +388,14 @@
   <button id="selb-add" title="Ogni tocco aggiunge o toglie un elemento" onclick="toggleMulti()">➕ Aggiungi</button>
   <button id="selb-conf" title="Conferma il tipo proposto ai muri non assegnati" onclick="confirmProposals()">✔ Conferma</button>
   <button id="selb-thick" title="Spessore e tipo dei muri selezionati" onclick="wallThickMenuAction()">📏 Spessore</button>
+  <button id="selb-demo" title="Demolisci o ripristina i muri e i serramenti selezionati" onclick="demoSelection()">⛏ Demolisci</button>
   <button id="selb-move" title="Sposta la selezione trascinando" onclick="toggleMoveSel()">✥ Sposta</button>
   <button id="selb-del" class="del" title="Elimina la selezione" onclick="deleteSelection()">🗑</button>
   <button title="Fine selezione" onclick="clearSelection()">✖</button>
 </div>
 
 <div id="statusbar">
+  <span id="sb-view" title="Tocca per passare tra Stato di fatto e Progetto" onclick="toggleView()">Stato di fatto</span>
   <span id="sb-tool">Seleziona</span>
   <span id="sb-points">Punti: 0</span>
   <span id="sb-segments">Segmenti: 0</span>
@@ -429,6 +441,7 @@ let W = 0, H = 0;            // dimensioni logiche del canvas (CSS px)
 
 const state = {
   tool: 'select',
+  view: 'sdf',          // 'sdf' = stato di fatto, 'prog' = progetto (vedi STATO DI FATTO / PROGETTO)
 
   // --- entita' del rilievo
   points:      [],   // {x,y,label,note,photo}
@@ -529,6 +542,7 @@ function ambWalls(am, cuts) {
   const per = edges.reduce((t,[p,q]) => t + Math.hypot(q.x-p.x, q.y-p.y), 0);
   let ap = 0, n = 0;
   state.openings.forEach((op,i) => {
+    if (!live(op)) return;
     const c = openingCenterW(i), h = state.segments[cuts.opp[i]];
     let o = null;                                            // centro del serramento riportato sulla faccia opposta
     if (c && h && state.points[h.a] && state.points[h.b]) {
@@ -584,7 +598,7 @@ function ambLeaderStart(pts, lw) {
 function hitAmbLabel(sx, sy) {
   ctx.font = 'bold 14px Segoe UI';
   for (let k=state.ambienti.length-1; k>=0; k--) {
-    const am = state.ambienti[k], s = ambLabelPos(am); if (!s) continue;
+    const am = state.ambienti[k], s = !hid(am) && ambLabelPos(am); if (!s) continue;
     const w = Math.max(ctx.measureText(am.name).width, 70)/2 + 8;
     if (Math.abs(sx-s.x) <= w && sy >= s.y-26 && sy <= s.y+40) return k;
   }
@@ -594,7 +608,7 @@ function hitAmbLabel(sx, sy) {
 // ---- quote dei muri: posizione, convalida (valida finche' la lunghezza resta quella validata)
 function segOk(g, len) { return !!g.ok && Math.abs(len - g.okLen) < 0.01; }
 function quotaInfo(i) {
-  const g = state.segments[i]; if (!g || g.layer==='MURI_EST') return null;     // i muri esterni non hanno quota
+  const g = state.segments[i]; if (!g || hid(g) || g.layer==='MURI_EST') return null;     // i muri esterni non hanno quota
   const A = state.points[g.a], B = state.points[g.b]; if (!A || !B) return null;
   const sa = w2s(A.x,A.y), sb = w2s(B.x,B.y);
   if (Math.hypot(sb.x-sa.x, sb.y-sa.y) < (PRINT ? 18 : 46)) return null;      // troppo corto sullo schermo: ci si avvicina con lo zoom
@@ -640,15 +654,15 @@ function updateValid() {
   if (PRINT) return;
   let n = 0, t = 0;
   state.segments.forEach(g => {
-    if (g.layer==='MURI_EST') return;
+    if (g.layer==='MURI_EST' || hid(g)) return;
     const A = state.points[g.a], B = state.points[g.b]; if (!A || !B) return;
     t++; if (segOk(g, Math.hypot(B.x-A.x, B.y-A.y))) n++;
   });
   const el = document.getElementById('sb-valid'), txt = 'Misure validate: '+n+'/'+t;
   if (el && el.textContent !== txt) el.textContent = txt;
-  const nd = state.segments.filter(g => g.cv==='dubbio').length, ed = document.getElementById('sb-dubbi');
+  const nd = state.segments.filter(g => g.cv==='dubbio' && !hid(g)).length, ed = document.getElementById('sb-dubbi');
   if (ed) { setDisp(ed, nd ? '' : 'none'); setTxt(ed, '⚠ Muri non assegnati: '+nd); }
-  const cls = nd > 0 || state.segments.some(g => g.commType);              // legenda solo se c'e' qualcosa da leggere
+  const cls = nd > 0 || state.segments.some(g => g.commType) || (prog() && hasProject());   // legenda solo se c'e' qualcosa da leggere
   setDisp($id('leg-btn'), cls ? '' : 'none'); if (!cls) setDisp($id('leg-box'), 'none');
 }
 
@@ -821,6 +835,7 @@ function s2w(sx, sy) { return { x: (sx - state.panX)/state.zoom, y: -(sy - state
 // ═══════════════════════════════════════════════════════════
 function hitPoint(sx, sy) {
   for (let i = state.points.length-1; i >= 0; i--) {
+    if (hid(state.points[i])) continue;
     const s = w2s(state.points[i].x, state.points[i].y);
     if (Math.hypot(sx-s.x, sy-s.y) <= HIT_PT_PX) return i;
   }
@@ -829,7 +844,7 @@ function hitPoint(sx, sy) {
 function hitSegment(sx, sy) {            // la linea piu' vicina al dito: con lo zoom piccolo le due facce di un muro sono a pochi pixel
   let best = null, bd = HIT_SEG_PX;
   for (let i = state.segments.length-1; i >= 0; i--) {
-    const g = state.segments[i];
+    const g = state.segments[i]; if (hid(g)) continue;
     const A = state.points[g.a], B = state.points[g.b];
     if (!A || !B) continue;
     const sa = w2s(A.x,A.y), sb = w2s(B.x,B.y), d = distPtSeg(sx,sy,sa.x,sa.y,sb.x,sb.y);
@@ -851,11 +866,12 @@ function hitOpening(sx, sy) {
 function inRectWorld(wx, wy, r) {
   return wx >= r.x && wx <= r.x + r.w && wy <= r.y && wy >= r.y - r.h;
 }
-function hitPilastro(sx, sy) { const w = s2w(sx,sy); for (let i=state.pilastri.length-1;i>=0;i--) if (inRectWorld(w.x,w.y,state.pilastri[i])) return i; return null; }
-function hitScala(sx, sy)    { const w = s2w(sx,sy); for (let i=state.scale.length-1;i>=0;i--)    if (inRectWorld(w.x,w.y,state.scale[i]))    return i; return null; }
+function hitPilastro(sx, sy) { const w = s2w(sx,sy); for (let i=state.pilastri.length-1;i>=0;i--) if (!hid(state.pilastri[i]) && inRectWorld(w.x,w.y,state.pilastri[i])) return i; return null; }
+function hitScala(sx, sy)    { const w = s2w(sx,sy); for (let i=state.scale.length-1;i>=0;i--)    if (!hid(state.scale[i]) && inRectWorld(w.x,w.y,state.scale[i]))    return i; return null; }
 function hitLabel(sx, sy) {
   ctx.font = 'bold 13px Segoe UI';
   for (let i=state.labels.length-1;i>=0;i--) {
+    if (hid(state.labels[i])) continue;
     const s = w2s(state.labels[i].x, state.labels[i].y);
     const wdt = ctx.measureText(state.labels[i].text).width;
     if (sx>=s.x-4 && sx<=s.x+wdt+4 && sy>=s.y-4 && sy<=s.y+20) return i;
@@ -888,7 +904,7 @@ function segLength(segIdx) {
   return Math.hypot(B.x-A.x, B.y-A.y);
 }
 function openingPos(i) {
-  const op = state.openings[i];
+  const op = state.openings[i]; if (hid(op)) return null;
   const g  = state.segments[op.segIdx]; if (!g) return null;
   const A = state.points[g.a], B = state.points[g.b]; if (!A||!B) return null;
   const sa = w2s(A.x,A.y), sb = w2s(B.x,B.y);
@@ -990,6 +1006,8 @@ function updateSelBar() {
   setDisp($('selb-conf'), nd ? '' : 'none'); setTxt($('selb-conf'), '✔ Conferma ('+nd+')');
   setDisp($('selb-thick'), state.selSeg && state.selSeg.size ? '' : 'none');
   setDisp($('selb-move'), n ? '' : 'none'); setDisp($('selb-del'), n ? '' : 'none');
+  const dm = prog() && ((state.selSeg && state.selSeg.size) || (state.selOpen && state.selOpen.size));
+  setDisp($('selb-demo'), dm ? '' : 'none');
   $('selb-move').classList.toggle('on', !!state.moveSel); setTxt($('selb-move'), state.moveSel ? '✥ Fine' : '✥ Sposta');
   // vicino all'ultimo tocco, mai sotto il dito: tra sopra e sotto (a due distanze) sceglie il posto che copre meno disegno,
   // soprattutto meno elementi selezionati, cosi' i muri vicini restano toccabili
@@ -1074,7 +1092,7 @@ function wallCuts() {
   const gaps = new Map(), jambs = [], opp = [];
   const add = (si, a, b) => { a = Math.max(0,a); b = Math.min(1,b); if (b-a < 1e-4) return; if (!gaps.has(si)) gaps.set(si, []); gaps.get(si).push([a,b]); };
   state.openings.forEach((op,i) => {
-    const g = state.segments[op.segIdx]; if (!g) return;
+    const g = state.segments[op.segIdx]; if (!g || hid(op)) return;
     const A = state.points[g.a], B = state.points[g.b]; if (!A || !B) return;
     const L = Math.hypot(B.x-A.x, B.y-A.y); if (L < 1e-6) return;
     const hw = op.width/L/2, t0 = Math.max(0, op.t-hw), t1 = Math.min(1, op.t+hw);
@@ -1084,7 +1102,7 @@ function wallCuts() {
     // la faccia opposta puo' essere spezzata in piu' linee: si interrompono tutte quelle che stanno su quella retta
     const ux = (B.x-A.x)/L, uy = (B.y-A.y)/L;
     state.segments.forEach((h,k) => {
-      if (k===op.segIdx) return;
+      if (k===op.segIdx || hid(h)) return;
       const C = state.points[h.a], D = state.points[h.b]; if (!C || !D) return;
       const Lc = Math.hypot(D.x-C.x, D.y-C.y); if (Lc < 1e-6) return;
       const vx = (D.x-C.x)/Lc, vy = (D.y-C.y)/Lc;
@@ -1234,6 +1252,7 @@ function rectCenter(r) { return w2s(r.x + r.w/2, r.y - r.h/2); }
 
 function drawPilastri() {
   state.pilastri.forEach((r,i) => {
+    if (hid(r)) return;
     rectPath(r);
     ctx.fillStyle = isSel('pilastro',i) ? 'rgba(255,224,102,.45)' : (PRINT ? 'rgba(80,80,80,.55)' : 'rgba(200,200,200,.55)');
     ctx.fill();
@@ -1248,7 +1267,7 @@ function drawPilastri() {
 }
 
 function drawScale() {
-  state.scale.forEach((s,i) => drawStair(s, PRINT ? '' : isSel('scala',i) ? 'sel' : (state.hoverScala===i ? 'hover' : '')));
+  state.scale.forEach((s,i) => !hid(s) && drawStair(s, PRINT ? '' : isSel('scala',i) ? 'sel' : (state.hoverScala===i ? 'hover' : '')));
   if (!PRINT && state.sel && state.sel.kind==='scala' && state.scale[state.sel.idx]) {       // maniglie
     const h = stairHandles(state.scale[state.sel.idx]);
     const hs = COARSE ? 9 : 6;
@@ -1263,8 +1282,10 @@ function segMenuAction(action) {
   const s = state.sel; if (!s || s.kind!=='segment' || !state.segments[s.idx]) return;
   if (action==='split')  { splitSegment(s.idx, s.t); return; }
   if (action==='delete') { state.selSeg = new Set([s.idx]); state.selSet = null; state.selOpen = null; state.selPen = null; deleteSelection(); return; }
+  if (action==='demo') { setDemo([s.idx], [], [], state.segments[s.idx].fase!=='demo'); return; }
   if (action==='move') {
     state.selSeg = new Set([s.idx]); state.selSet = null; state.selOpen = null; state.selPen = null;
+    if (selHasLocked()) { state.selSeg = null; lockTip(); return; }
     state.moveSel = true; state.selAnchor = state.tapW;
     setTip('Trascina in un punto qualsiasi: si sposta la linea. Tocca di nuovo il pulsante per finire.');
     draw(); return;
@@ -1359,6 +1380,107 @@ function wallClass(g) { return g.cv==='dubbio' ? 'nd' : g.commType || (g.layer==
 function wallName(t) { return WALL_STYLE[t||''].name; }
 function wallCom(g) { return g.commType==='comunione' || g.commType==='nonrisc'; }      // al 50% nella superficie commerciale
 
+// ═══════════════════════════════════════════════════════════
+//  STATO DI FATTO / PROGETTO: ogni elemento ha una fase. 'es' = esiste (il rilievo), 'demo' = esiste e nel Progetto
+//  si demolisce, 'nuovo' = solo nel Progetto. Lo Stato di fatto mostra il rilievo com'e' oggi (nuovo nascosto), il
+//  Progetto mostra tutto: demolito in giallo, nuovo in rosso. Nel Progetto la geometria del rilievo e' bloccata:
+//  si demolisce o si ripristina; il nuovo si disegna libero. Correggendo il rilievo il Progetto lo segue, perche'
+//  sono gli stessi elementi. La fase la riceve ogni elemento nuovo alla prima registrazione (commit).
+// ═══════════════════════════════════════════════════════════
+const FASE_KEYS = ['points','segments','openings','ambienti','pilastri','scale','labels','pencilLines'];
+const SEL_ARR = {point:'points', segment:'segments', quota:'segments', opening:'openings', ambiente:'ambienti', pilastro:'pilastri', scala:'scale', label:'labels', pencil:'pencilLines'};
+const FASE_COL = {demo:['#ffd400','#d4a800'], nuovo:['#ff3b3b','#e00000']};      // [video, stampa]
+const FASE_LAYER = {demo:'DEMOLIZIONI', nuovo:'COSTRUZIONI'};
+function prog() { return state.view==='prog'; }
+function hid(el) { return !!el && el.fase==='nuovo' && !prog(); }                          // nascosto nella vista corrente
+function live(el) { return !!el && (prog() ? el.fase!=='demo' : el.fase!=='nuovo'); }      // fa parte dello stato che si guarda
+function locked(el) { return prog() && !!el && el.fase!=='nuovo'; }                        // rilievo esistente visto dal Progetto
+function faseCol(el) { const c = prog() && el && FASE_COL[el.fase]; return c ? c[PRINT ? 1 : 0] : null; }
+function selEl() { const s = state.sel; return s && SEL_ARR[s.kind] ? state[SEL_ARR[s.kind]][s.idx] : null; }
+function hasProject() { return FASE_KEYS.some(k => state[k].some(el => el.fase==='demo' || el.fase==='nuovo')); }
+function viewName() { return prog() ? 'Progetto' : 'Stato di fatto'; }
+function withView(v, fn) { const o = state.view; state.view = v; try { return fn(); } finally { state.view = o; } }
+function lockTip() { setTip('Nel Progetto il rilievo esistente non si sposta e non si cancella: si demolisce (menu del muro o del serramento). Per correggere il rilievo torna allo Stato di fatto.'); }
+function assignFase() { const f = prog() ? 'nuovo' : 'es'; FASE_KEYS.forEach(k => state[k].forEach(el => { if (!el.fase) el.fase = f; })); }
+function toggleView() {
+  hideAllMenus(); assignFase();                 // chi e' nato in questa vista prende la sua fase prima del cambio
+  state.view = prog() ? 'sdf' : 'prog';
+  setTool('select'); state.sel = null;
+  updateViewUI();
+  commit(prog() ? 'Progetto: tocca un muro o un serramento esistente per demolirlo (giallo), disegna il nuovo (rosso).' : 'Stato di fatto: il rilievo com\'è oggi.', true);
+}
+function updateViewUI() {
+  document.body.classList.toggle('prog', prog());
+  const b = $id('btn-view'); b.classList.toggle('prog', prog());
+  b.querySelector('.ic').textContent = prog() ? 'PRG' : 'SdF'; b.querySelector('.cap').textContent = viewName();
+  setTxt($id('sb-view'), prog() ? 'PROGETTO' : 'Stato di fatto');
+}
+// Demolisci / Ripristina, solo nel Progetto e sul rilievo esistente. Si demoliscono solo i muri interni (ripartizioni):
+// esterni, verso altre unita' e verso il vano scala ammettono solo tracce per impianti, tinteggiature e finiture.
+// Un muro porta con se' la faccia opposta (le due linee dello stesso muro) e i serramenti che contiene.
+function demoBlock(g) {
+  const k = wallClass(g);
+  if (k==='nd') return 'Muro non assegnato: dagli prima la classe (Spessore e tipo).';
+  return k ? 'Muro '+wallName(k).toLowerCase()+': non si demolisce né si aprono varchi. Ammessi solo tracce per impianti, tinteggiature e finiture.' : '';
+}
+// la linea e le facce parallele dello stesso muro (distanza 3-60 cm, sovrapposte per almeno meta'), con il filtro ok
+function wallFaces(si, ok) {
+  const g = state.segments[si], A = state.points[g.a], B = state.points[g.b], out = [si]; if (!A || !B) return out;
+  const L = Math.hypot(B.x-A.x, B.y-A.y); if (L < 1e-6) return out;
+  const ux = (B.x-A.x)/L, uy = (B.y-A.y)/L;
+  state.segments.forEach((h,k) => {
+    if (k===si || !ok(h)) return;
+    const C = state.points[h.a], D = state.points[h.b]; if (!C || !D) return;
+    const Lc = Math.hypot(D.x-C.x, D.y-C.y); if (Lc < 1e-6 || Math.abs(ux*(D.y-C.y)/Lc - uy*(D.x-C.x)/Lc) > 0.05) return;
+    const d = Math.abs((C.x-A.x)*uy - (C.y-A.y)*ux); if (d < 0.03 || d > 0.6) return;
+    const s0 = (C.x-A.x)*ux + (C.y-A.y)*uy, s1 = (D.x-A.x)*ux + (D.y-A.y)*uy;
+    const ov = Math.min(L, Math.max(s0,s1)) - Math.max(0, Math.min(s0,s1));
+    if (ov >= 0.5*Math.min(L, Lc)) out.push(k);
+  });
+  return out;
+}
+function faceDist(i, k) {
+  const g = state.segments[i], h = state.segments[k], A = state.points[g.a], B = state.points[g.b], C = state.points[h.a];
+  const L = Math.hypot(B.x-A.x, B.y-A.y) || 1;
+  return Math.abs((C.x-A.x)*(B.y-A.y)/L - (C.y-A.y)*(B.x-A.x)/L);
+}
+// segIdx: muri (con le loro facce); opIdx: serramenti; ambIdx: ambienti. on = demolisci, altrimenti ripristina
+// serramento demolito in quel punto del muro (sulla stessa linea o sulla faccia opposta): un nuovo li' lo sostituisce
+function demoAt(segIdx, t) {
+  const g = state.segments[segIdx], A = state.points[g.a], B = state.points[g.b]; if (!A || !B) return null;
+  const P = {x:A.x+(B.x-A.x)*t, y:A.y+(B.y-A.y)*t};
+  return state.openings.find((o,i) => { if (o.fase!=='demo') return false; const c = openingCenterW(i); return c && Math.hypot(c.x-P.x, c.y-P.y) < o.width/2 + 0.6; }) || null;
+}
+function setDemo(segIdx, opIdx, ambIdx, on) {
+  const f = on ? 'demo' : 'es', why = new Set(), segs = new Set();
+  segIdx.forEach(si => {
+    const g = state.segments[si]; if (!g || g.fase==='nuovo') return;
+    const b = on ? demoBlock(g) : ''; if (b) { why.add(b); return; }
+    wallFaces(si, h => h.fase!=='nuovo' && (!on || !demoBlock(h))).forEach(k => segs.add(k));
+  });
+  if (!segs.size && !opIdx.length && !ambIdx.length) { setTip([...why].join(' ')); return; }
+  saveHistory();
+  segs.forEach(k => { state.segments[k].fase = f; });
+  let n = segs.size, m = 0;
+  state.openings.forEach((o,i) => { if (o.fase!=='nuovo' && (segs.has(o.segIdx) || opIdx.includes(i))) { o.fase = f; m++; } });
+  ambIdx.forEach(i => { const a = state.ambienti[i]; if (a && a.fase!=='nuovo') { a.fase = f; n++; } });
+  state.sel = null;
+  commit((n || m ? (on ? 'Demolito: ' : 'Ripristinato: ')+[n ? n+(n===1 ? ' elemento' : ' elementi') : '', m ? m+(m===1 ? ' serramento' : ' serramenti') : ''].filter(Boolean).join(', ')+'. ' : '')+[...why].join(' '));
+}
+function demoSelection() {
+  if (!prog()) return;
+  const segs = [...(state.selSeg||[])], ops = [...(state.selOpen||[])];
+  const on = segs.some(i => state.segments[i] && state.segments[i].fase==='es') || ops.some(i => state.openings[i] && state.openings[i].fase==='es');
+  setDemo(segs, ops, [], on); clearSelection();
+}
+// nel Progetto: la selezione tocca il rilievo esistente? (punti selezionati e punti dei muri selezionati)
+function selHasLocked() {
+  if (!prog()) return false;
+  const pts = new Set(state.selSet||[]);
+  (state.selSeg||[]).forEach(k => { const g = state.segments[k]; if (g) { pts.add(g.a); pts.add(g.b); if (locked(g)) pts.add(-1); } });
+  return pts.has(-1) || [...pts].some(i => locked(state.points[i])) || [...(state.selOpen||[])].some(i => locked(state.openings[i])) || [...(state.selPen||[])].some(i => locked(state.pencilLines[i]));
+}
+
 // nome dell'ambiente da elenco, sempre univoco: quelli che di solito si ripetono (ROOM_NUM) partono da "1", gli altri
 // prendono il numero solo se si ripetono (il primo senza numero diventa "1"). Il numero nuovo e' il primo libero;
 // i nomi gia' dati non si rinumerano. "Altro" = nome scritto a mano.
@@ -1398,6 +1520,7 @@ function roomNameRead(v, self, cur) {
 function hitAmbiente(sx, sy) {
   const w = s2w(sx,sy);
   for (let k=state.ambienti.length-1;k>=0;k--) {
+    if (hid(state.ambienti[k])) continue;
     const pts = state.ambienti[k].indices.map(i => state.points[i]).filter(Boolean); if (pts.length<3) continue;
     if (inPoly(pts, w.x, w.y)) return k;
   }
@@ -1407,6 +1530,7 @@ function ambMenuAction(action) {
   hideAllMenus();
   const s = state.sel; if (!s || s.kind!=='ambiente') return;
   const amb = state.ambienti[s.idx]; if (!amb) return;
+  if (action==='demo') { setDemo([], [], [s.idx], amb.fase!=='demo'); return; }
   if (action==='delete') { saveHistory(); state.ambienti.splice(s.idx,1); state.sel=null; commit('Ambiente eliminato (le linee restano).'); return; }
   if (action==='deleteall') {
     saveHistory();
@@ -1434,7 +1558,16 @@ function ambMenuAction(action) {
 function drawAmbienti() {
   state.ambienti.forEach((amb, k) => {
     const pts = amb.indices.map(i => state.points[i]).filter(Boolean);
-    if (pts.length < 3) return;
+    if (pts.length < 3 || hid(amb)) return;
+    if (prog() && amb.fase==='demo') {          // superato nel Progetto: contorno e nome, solo a video, per poterlo ripristinare
+      if (PRINT) return;
+      const sp = pts.map(p => w2s(p.x,p.y)), c = ambLabelPos(amb);
+      ctx.save(); ctx.beginPath(); sp.forEach((q,j) => j ? ctx.lineTo(q.x,q.y) : ctx.moveTo(q.x,q.y)); ctx.closePath();
+      ctx.setLineDash([6,4]); ctx.strokeStyle = FASE_COL.demo[0]; ctx.lineWidth = isSel('ambiente',k) ? 3 : 1.5; ctx.stroke();
+      ctx.fillStyle = FASE_COL.demo[0]; ctx.font = 'bold 12px Segoe UI'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(amb.name+' (superato)', c.x, c.y-16); ctx.restore();
+      return;
+    }
     if (!PRINT) {
       const sp = pts.map(p => w2s(p.x,p.y));
       ctx.beginPath(); ctx.moveTo(sp[0].x,sp[0].y);
@@ -1465,6 +1598,7 @@ function drawAmbienti() {
 
 function hitPencil(sx, sy) {
   for (let i=state.pencilLines.length-1;i>=0;i--) {
+    if (hid(state.pencilLines[i])) continue;
     const p = state.pencilLines[i].pts;
     for (let k=1;k<p.length;k++) { const a=w2s(p[k-1].x,p[k-1].y), b=w2s(p[k].x,p[k].y); if (distPtSeg(sx,sy,a.x,a.y,b.x,b.y)<=8) return i; }
   }
@@ -1478,20 +1612,21 @@ function drawPencil() {
     l.pts.slice(1).forEach(p => { const s=w2s(p.x,p.y); ctx.lineTo(s.x,s.y); });
     ctx.strokeStyle=color; ctx.lineWidth=prLw(2, 0.18); ctx.setLineDash([6,3]); ctx.stroke(); ctx.setLineDash([]);
   };
-  state.pencilLines.forEach((l,i) => line(l, isSel('pencil',i) || (state.selPen && state.selPen.has(i)) ? '#ffe066' : (PRINT ? '#555' : '#ff8c00')));
+  state.pencilLines.forEach((l,i) => !hid(l) && line(l, isSel('pencil',i) || (state.selPen && state.selPen.has(i)) ? '#ffe066' : (PRINT ? '#555' : '#ff8c00')));
   if (state.pencilCurrent) line(state.pencilCurrent,'#ffaa33');
 }
 
 function drawSegments() {
   const style = (g, i) => {
     const selL = (state.selSeg && state.selSeg.has(i)) || isSel('segment',i);
-    const st = WALL_STYLE[wallClass(g)];
-    ctx.strokeStyle = selL ? '#e94560' : C[st.col]; ctx.lineWidth = selL ? 4 : prLw(2.5, st.w);
-    // in stampa la classe si legge dal tratto; a video dal colore, tratteggiato se non assegnato (tipo proposto, da validare)
-    ctx.setLineDash(PRINT ? st.dash.map(v => v*PX_MM) : g.cv==='dubbio' ? [9,6] : []);
+    const st = WALL_STYLE[wallClass(g)], fc = faseCol(g);
+    ctx.strokeStyle = selL ? '#e94560' : fc || C[st.col]; ctx.lineWidth = selL ? 4 : fc ? prLw(3.5, 0.5) : prLw(2.5, st.w);
+    // in stampa la classe si legge dal tratto; a video dal colore, tratteggiato se non assegnato (tipo proposto, da validare).
+    // Nel Progetto demolito e nuovo hanno il loro colore pieno
+    ctx.setLineDash(fc ? [] : PRINT ? st.dash.map(v => v*PX_MM) : g.cv==='dubbio' ? [9,6] : []);
   };
   state.segments.forEach((g,i) => {
-    const A=state.points[g.a], B=state.points[g.b]; if(!A||!B) return;
+    const A=state.points[g.a], B=state.points[g.b]; if(!A||!B||hid(g)) return;
     const sa=w2s(A.x,A.y), sb=w2s(B.x,B.y), dx=sb.x-sa.x, dy=sb.y-sa.y;
     style(g, i);
     ctx.beginPath();
@@ -1516,7 +1651,7 @@ function drawOpenings() {
     const halfPx  = segLen>0 ? (op.width/segLen)*segLenPx/2 : 10;
     const ang     = Math.atan2(p.sb.y-p.sa.y, p.sb.x-p.sa.x);
     const on      = isSel('opening',i) || !!(state.selOpen && state.selOpen.has(i));
-    const col     = PRINT ? (op.type==='P' ? C.door : C.win) : (op.type==='F' ? C.win : op.type==='P' ? C.door : C.pf);
+    const col     = faseCol(op) || (PRINT ? (op.type==='P' ? C.door : C.win) : (op.type==='F' ? C.win : op.type==='P' ? C.door : C.pf));
 
     ctx.save(); ctx.translate(p.sx,p.sy); ctx.rotate(ang);
     const tk = prU(8), gl = prU(4);                 // stipiti e vetro (il muro sotto e' gia' interrotto dal varco)
@@ -1624,6 +1759,7 @@ function drawMeasure() {
 function drawLabels() {
   ctx.font=prFont(13, 2.5, true); ctx.textAlign='left'; ctx.textBaseline='top';
   state.labels.forEach(l => {
+    if (hid(l)) return;
     const s = w2s(l.x,l.y);
     ctx.fillStyle=C.label; ctx.fillText(l.text, s.x, s.y);
   });
@@ -1632,6 +1768,7 @@ function drawLabels() {
 
 function drawPoints() {
   state.points.forEach((p,i) => {
+    if (hid(p)) return;
     const s = w2s(p.x,p.y);
     const on   = isSel('point',i) || !!(state.selSet && state.selSet.has(i));
     const conn = state.connectFrom===i || state.measureFrom===i;
@@ -1693,12 +1830,13 @@ const TIPS = {
   stair:    'Trascina nel verso di salita: un gradino ogni 30 cm. Poi maniglie per allargare o allungare, doppio clic per pedata e alzata.',
   label:    'Clicca per l\'etichetta. In Seleziona la trascini e col doppio click la modifichi.',
   pencil:   'Trascina per disegnare a mano libera.',
+  roompts:  'Tocca i vertici dell\'ambiente in ordine, poi di nuovo il primo per chiuderlo. Nel Progetto serve per le stanze unite o divise.',
 };
 
 // strumento attivo: il pulsante del suo gruppo ne prende icona e nome, la voce nella lista si evidenzia
-const TOOL_ICON  = {wall:'▭', room:'⬚', point:'+', connect:'/', trilatere:'◎', measure:'📏', split:'✂', opening:'🚪', pilastro:'▪', stair:'🪜', label:'🏷', pencil:'✏'};
-const TOOL_NAME  = {wall:'Muro', room:'Stanza', point:'Punto', connect:'Collega', trilatere:'Trilatera', measure:'Misura', split:'Spezza', opening:'Serramento', pilastro:'Pilastro', stair:'Scala', label:'Etichetta', pencil:'Matita'};
-const TOOL_GROUP = {wall:'draw', room:'draw', point:'draw', connect:'draw', trilatere:'draw', measure:'draw', split:'draw', opening:'ins', pilastro:'ins', stair:'ins', label:'ins', pencil:'ins'};
+const TOOL_ICON  = {roompts:'⬠', wall:'▭', room:'⬚', point:'+', connect:'/', trilatere:'◎', measure:'📏', split:'✂', opening:'🚪', pilastro:'▪', stair:'🪜', label:'🏷', pencil:'✏'};
+const TOOL_NAME  = {roompts:'Ambiente da punti', wall:'Muro', room:'Stanza', point:'Punto', connect:'Collega', trilatere:'Trilatera', measure:'Misura', split:'Spezza', opening:'Serramento', pilastro:'Pilastro', stair:'Scala', label:'Etichetta', pencil:'Matita'};
+const TOOL_GROUP = {roompts:'draw', wall:'draw', room:'draw', point:'draw', connect:'draw', trilatere:'draw', measure:'draw', split:'draw', opening:'ins', pilastro:'ins', stair:'ins', label:'ins', pencil:'ins'};
 const GROUP_DEF  = {draw:{icon:'📐', name:'Disegna'}, ins:{icon:'🧱', name:'Inserisci'}};
 function markTool(t) {
   document.querySelectorAll('.tool-btn, .tool-item').forEach(b => b.classList.remove('active'));
@@ -1724,7 +1862,7 @@ function setTool(t) {
   resetTril();
   state.wallOrigin=null; state.wallPreview=null; state.wallSnapAngle=null; state.wallSnapPoint=null;
   state.openingDrag=null; state.drag=null; state.rectDraw=null; state.roomDraw=null; state.selBox=null; state.selSet=null; state.selOpen=null; state.selSeg=null; state.selPen=null;
-  state.multi=false; state.moveSel=false;
+  state.multi=false; state.moveSel=false; state.roomPts=null;
   state.moveBase=false; state.handMode=false;       // cambiare strumento chiude lo spostamento della base e la mano: altrimenti ogni tocco li ripete
   if (state.pencilCurrent) {
     if (state.pencilCurrent.pts.length>1) { saveHistory(); state.pencilLines.push(state.pencilCurrent); }
@@ -1837,7 +1975,7 @@ function snapResolve(sx, sy, w, angCons, excl) {
   angCons.forEach(c => { const r = c.sn.a*Math.PI/180; cand.push({kind:'ang', score:c.sn.score, N:c.N, sn:c.sn, p0:{x:c.N.x, y:c.N.y}, d:{x:Math.cos(r), y:Math.sin(r)}, text:c.sn.text}); });
   let bx=null, by=null;
   state.points.forEach((P,j) => {
-    if (excl.has(j)) return;
+    if (excl.has(j) || hid(P)) return;
     const q = w2s(P.x,P.y), dx = Math.abs(q.x-sx), dy = Math.abs(q.y-sy);
     if (dx<=tol && (!bx || dx<bx.d)) bx = {d:dx, P};
     if (dy<=tol && (!by || dy<by.d)) by = {d:dy, P};
@@ -1889,7 +2027,7 @@ function alignMulti(d, dx, dy, sx, sy) {
   d.pts.forEach(p => {
     const x = p.x+dx, y = p.y+dy;
     state.points.forEach((Q,j) => {
-      if (sel.has(j)) return;
+      if (sel.has(j) || hid(Q)) return;
       const ex = Q.x-x, ey = Q.y-y;
       if (Math.abs(ex)<=tol && (!bx || Math.abs(ex)<Math.abs(bx.e))) bx = {e:ex, Q};
       if (Math.abs(ey)<=tol && (!by || Math.abs(ey)<Math.abs(by.e))) by = {e:ey, Q};
@@ -1906,7 +2044,7 @@ function alignMulti(d, dx, dy, sx, sy) {
 function nearestPoint(sx, sy, exclude) {
   let best=null, bestD=SNAP_PT_PX;
   state.points.forEach((p,i) => {
-    if (i===exclude) return;
+    if (i===exclude || hid(p)) return;
     const s = w2s(p.x,p.y);
     const d = Math.hypot(sx-s.x, sy-s.y);
     if (d < bestD) { bestD=d; best=i; }
@@ -1989,6 +2127,11 @@ function roomCorner(sx, sy) {
   const w = s2w(sx, sy); return {x:w.x, y:w.y, pi:null};
 }
 function drawRoomPreview() {
+  if (state.roomPts && state.roomPts.length) {          // Ambiente da punti: i vertici gia' toccati
+    const sp = state.roomPts.map(i => state.points[i]).filter(Boolean).map(p => w2s(p.x,p.y));
+    ctx.save(); ctx.strokeStyle = '#ffe066'; ctx.lineWidth = 2.5; ctx.setLineDash([6,4]); ctx.beginPath();
+    sp.forEach((q,j) => j ? ctx.lineTo(q.x,q.y) : ctx.moveTo(q.x,q.y)); ctx.stroke(); ctx.restore();
+  }
   const r = state.roomDraw; if (!r) return;
   const a = w2s(r.x0, r.y0), b = w2s(r.x1, r.y1);
   ctx.save();
@@ -2144,7 +2287,13 @@ function nextOpeningLabel(type) {
 
 function insertOpening(segIdx, t) {
   const type = state.openingType; if (!type) return;
-  const len = segLength(segIdx);
+  const len = segLength(segIdx), g = state.segments[segIdx];
+  // nel Progetto, su un muro esistente: niente serramenti sui muri demoliti; sui muri non demolibili solo al posto di uno demolito
+  if (locked(g)) {
+    if (g.fase==='demo') { setTip('Muro demolito: il serramento va su un muro che resta o su uno nuovo.'); return; }
+    const swap = demoAt(segIdx, t), b = demoBlock(g);
+    if (b && !swap) { setTip(b+' Per sostituire un serramento demolisci quello esistente e inserisci il nuovo nello stesso punto.'); return; }
+  }
   const D = OPENING_DEF[type], width = +Math.min(D.width, len*0.9).toFixed(2), hw = width/len/2;
   saveHistory();
   const label = nextOpeningLabel(type);
@@ -2184,6 +2333,7 @@ function openingMenuAction(action) {
   const i = state.sel.idx, op = state.openings[i]; if (!op) return;
 
   if (action==='multi')  { multiStart(); return; }
+  if (action==='demo')   { setDemo([], [i], [], op.fase!=='demo'); return; }
   if (action==='delete') { saveHistory(); state.openings.splice(i,1); state.sel=null; commit('Serramento eliminato.'); return; }
   if (action==='editall') {
     const same = state.openings.filter(o => o.type===op.type);
@@ -2390,7 +2540,7 @@ function addPoint(p) {
 function checkClosedPolygon(lastIdx) {
   const adj = {};
   state.points.forEach((_,i) => adj[i]=[]);
-  state.segments.forEach(s => { if (s.layer==='MURI_EST') return;      // i muri esterni non chiudono mai un ambiente
+  state.segments.forEach(s => { if (s.layer==='MURI_EST' || !live(s)) return;      // i muri esterni non chiudono mai un ambiente; ne' i demoliti nel Progetto
     if(adj[s.a]&&adj[s.b]){ adj[s.a].push(s.b); adj[s.b].push(s.a); } });
 
   const cycles=[];
@@ -2407,9 +2557,12 @@ function checkClosedPolygon(lastIdx) {
   const cycle = cycles.sort((a,b)=>a.length-b.length)[0];
   const key = [...cycle].sort((a,b)=>a-b).join(',');
   if (state.ambienti.some(a => [...a.indices].sort((x,y)=>x-y).join(',')===key)) return;
+  askRoom(cycle);
+}
+// nome e altezza del nuovo ambiente (chiuso dai muri o dai punti toccati)
+function askRoom(cycle) {
   const area = Math.abs(shoelace(cycle.map(i=>state.points[i])));
-  if (area < 0.05) return;
-
+  if (area < 0.05) { setTip('Ambiente troppo piccolo: controlla i vertici.'); return; }
   const nm0 = 'Ambiente '+(state.ambienti.length+1);
   askDialog('Ambiente rilevato', roomNameFields(nm0).concat([
     {label:'Altezza netta (m)',id:'h',    value:lastAmbH().toFixed(2), type:'number'},
@@ -2450,13 +2603,15 @@ function quotaMenuAction(action) {
 function setWallLength(si, m) {
   const g = state.segments[si], A = state.points[g.a], B = state.points[g.b];
   const len = Math.hypot(B.x-A.x, B.y-A.y); if (len < 1e-6) return;
+  if (locked(A) && locked(B)) { lockTip(); return; }
   saveHistory();
   const touched = [];
   state.segments.forEach((h,k) => {
     if (h.a===g.a || h.b===g.a || h.a===g.b || h.b===g.b) { const l0 = segLength(k); touched.push({k, l0, ok0:segOk(h,l0)}); }
   });
-  const ux = (B.x-A.x)/len, uy = (B.y-A.y)/len, d = (m-len)/2;
-  A.x -= ux*d; A.y -= uy*d; B.x += ux*d; B.y += uy*d;
+  // di norma meta' per parte; nel Progetto un estremo del rilievo resta fermo e si muove solo quello nuovo
+  const ux = (B.x-A.x)/len, uy = (B.y-A.y)/len, dA = (m-len)*(locked(B) ? 1 : locked(A) ? 0 : 0.5), dB = (m-len) - dA;
+  A.x -= ux*dA; A.y -= uy*dA; B.x += ux*dB; B.y += uy*dB;
   let lost = 0;
   touched.forEach(t => {
     const h = state.segments[t.k], l1 = segLength(t.k);
@@ -2479,7 +2634,16 @@ const MENU_IDS = ['quota-context','seg-context','amb-context','context-menu','op
 let _menuOpenedAt = 0;
 function showMenu(id, x, y, above, avoid) {
   hideAllMenus();
-  if (id==='entity-context') document.getElementById('ent-edit').style.display = state.sel && state.sel.kind==='pencil' ? 'none' : '';
+  const mn = document.getElementById(id), el = selEl(), lk = locked(el), can = prog() && el && el.fase!=='nuovo';
+  mn.querySelectorAll('[data-lock]').forEach(it => it.style.display = lk ? 'none' : '');
+  mn.querySelectorAll('[data-sdf]').forEach(it => it.style.display = prog() ? 'none' : '');
+  mn.querySelectorAll('[data-demo]').forEach(it => {
+    it.style.display = can ? '' : 'none'; if (!can) return;
+    const back = el.fase==='demo', amb = id==='amb-context';
+    it.innerHTML = (back ? '↺ Ripristina' : amb ? '⛏ Superato nel progetto' : '⛏ Demolisci')+
+      '<small class="md">'+(back ? 'Resta com\'è nel progetto' : amb ? 'Cambia nel progetto: disegna il nuovo ambiente' : 'Giallo nel progetto, entra nelle quantità')+'</small>';
+  });
+  if (id==='entity-context' && state.sel && state.sel.kind==='pencil') document.getElementById('ent-edit').style.display = 'none';
   if (id==='seg-context') {                    // muro esterno col tipo proposto dall'app: conferma con un tocco
     const g = state.sel && state.sel.kind==='segment' && state.segments[state.sel.idx], it = document.getElementById('sm-conf');
     if (g && g.cv==='dubbio') { it.style.display = ''; it.textContent = '✔ Conferma: '+wallName(g.commType||'')+(g.thick ? ' '+Math.round(g.thick*100)+' cm' : ''); }
@@ -2585,6 +2749,7 @@ function askRadius(ptIdx, cb) {
 function entityMenuAction(action) {
   hideAllMenus();
   const s = state.sel; if (!s) return;
+  if (locked(selEl())) { lockTip(); return; }
 
   if (action==='delete') {
     if (s.kind==='segment') { segMenuAction('delete'); return; }
@@ -2637,6 +2802,7 @@ function splitSegment(si, t) {
   const g = state.segments[si], A = state.points[g.a], B = state.points[g.b];
   saveHistory();
   const n = newPoint(A.x+(B.x-A.x)*t, A.y+(B.y-A.y)*t), oldB = g.b;
+  if (g.fase && g.fase!=='nuovo') state.points[n].fase = 'es';
   g.b = n; g.ok = false; delete g.qo;
   state.segments.push({...g, a:n, b:oldB});
   const ns = state.segments.length-1;
@@ -2659,13 +2825,17 @@ function splitSegment(si, t) {
 // elimina in blocco quello che sta nel riquadro: linee, punti (con le loro linee) e serramenti.
 // I punti rimasti senza linee dopo l'eliminazione spariscono, salvo quelli con nota o foto.
 function deleteSelection(noHist) {
-  const pts = new Set(state.selSet||[]), segs = new Set(state.selSeg||[]), ops = new Set(state.selOpen||[]);
+  // nel Progetto si cancella solo il nuovo: il rilievo esistente si demolisce
+  const keep = (k, arr) => [...(state[k]||[])].filter(i => !locked(state[arr][i]));
+  const tot = selCount(), pts = new Set(keep('selSet','points')), segs = new Set(keep('selSeg','segments')), ops = new Set(keep('selOpen','openings'));
+  if (state.selPen) state.selPen = new Set(keep('selPen','pencilLines'));
+  if (tot && !pts.size && !segs.size && !ops.size && !(state.selPen && state.selPen.size)) { lockTip(); return; }
   if (!noHist) saveHistory();
   const segDel = new Set();
   state.segments.forEach((s,i) => { if (segs.has(i) || pts.has(s.a) || pts.has(s.b)) segDel.add(i); });
   const deg = new Map();
   state.segments.forEach((s,i) => { if (segDel.has(i)) return; deg.set(s.a,(deg.get(s.a)||0)+1); deg.set(s.b,(deg.get(s.b)||0)+1); });
-  segDel.forEach(i => { const s = state.segments[i]; [s.a,s.b].forEach(p => { const P = state.points[p]; if (!deg.get(p) && P && !P.note && !P.photo) pts.add(p); }); });
+  segDel.forEach(i => { const s = state.segments[i]; [s.a,s.b].forEach(p => { const P = state.points[p]; if (!deg.get(p) && P && !P.note && !P.photo && !locked(P)) pts.add(p); }); });
 
   const pen = state.selPen || new Set(); state.pencilLines = state.pencilLines.filter((_,i) => !pen.has(i)); state.selPen = null;
   removeItems(pts, segDel, ops);
@@ -2674,7 +2844,8 @@ function deleteSelection(noHist) {
 }
 
 function deletePoints(indices, noHist) {
-  const del = new Set(indices);
+  const del = new Set(indices.filter(i => !locked(state.points[i])));
+  if (indices.length && !del.size) { lockTip(); return; }
   if (!del.size) return;
   if (!noHist) saveHistory();
   removeItems(del, new Set(), new Set());
@@ -2824,6 +2995,13 @@ function handleClick(sx, sy, clientX, clientY, shift) {
     return;
   }
 
+  case 'roompts': {                    // ambiente da punti: i vertici in ordine, si chiude toccando il primo
+    if (pi===null) { setTip('Tocca un punto: i vertici dell\'ambiente, in ordine.'); return; }
+    const rp = state.roomPts || (state.roomPts = []);
+    if (rp.length>=3 && pi===rp[0]) { state.roomPts = null; draw(); askRoom(rp); return; }
+    if (rp.includes(pi)) return;
+    rp.push(pi); setTip('Vertice '+rp.length+(rp.length<3 ? ': tocca il prossimo.' : ': tocca il prossimo, o il primo per chiudere.')); draw(); return;
+  }
   case 'connect': {
     if (pi===null) return;
     if (state.connectFrom===null) { state.connectFrom=pi; setTip('Ora clicca il secondo punto.'); draw(); return; }
@@ -2961,39 +3139,40 @@ canvas.addEventListener('pointerdown', e => {
     case 'room':   { const c=roomCorner(sx,sy); state.roomDraw={x0:c.x, y0:c.y, x1:c.x, y1:c.y, a:c.pi, b:null}; return; }
     case 'wall':   return;                  // i vertici si mettono al clic (handleClick)
     case 'opening': {
-      const hh = hitOpeningHandle(sx,sy); if (hh) { state.openingResize=hh; return; }
+      const hh = hitOpeningHandle(sx,sy); if (hh && !locked(state.openings[hh.idx])) { state.openingResize=hh; return; }
       const oi = hitOpening(sx,sy);
-      if (oi!==null) { state.openingDrag={idx:oi}; state.sel={kind:'opening',idx:oi}; }
+      if (oi!==null) { if (!locked(state.openings[oi])) state.openingDrag={idx:oi}; state.sel={kind:'opening',idx:oi}; }
       return;
     }
     case 'select': {
       // Shift o selezione multipla attiva: il riquadro aggiunge a quello che e' gia' selezionato; Shift+clic su un elemento lo aggiunge o toglie
       const base = e.shiftKey || state.multi ? selCopy() : null;
       if (e.shiftKey) { state.selBox={x0:sx,y0:sy,x1:sx,y1:sy,keep,base,shift:true}; return; }
-      const hh = hitOpeningHandle(sx,sy); if (hh) { state.openingResize=hh; return; }
-      const sh = hitStairHandle(sx,sy);   if (sh) { state.stairResize=sh; return; }
+      // nel Progetto il rilievo esistente non si trascina: il tocco apre solo il menu
+      const hh = hitOpeningHandle(sx,sy); if (hh && !locked(state.openings[hh.idx])) { state.openingResize=hh; return; }
+      const sh = hitStairHandle(sx,sy);   if (sh && !locked(state.scale[sh.idx])) { state.stairResize=sh; return; }
       const oi = hitPoint(sx,sy)===null ? hitOpening(sx,sy) : null;
-      if (oi!==null) { state.openingDrag={idx:oi}; state.sel={kind:'opening',idx:oi}; return; }
+      if (oi!==null) { if (!locked(state.openings[oi])) state.openingDrag={idx:oi}; state.sel={kind:'opening',idx:oi}; return; }
       const pi = hitPoint(sx,sy);
-      if (pi!==null) { state.drag={kind:'point', idx:pi}; return; }
+      if (pi!==null) { if (!locked(state.points[pi])) state.drag={kind:'point', idx:pi}; return; }
       const oq = hitOpeningQuota(sx,sy);
       if (oq!==null) { const c=openingQuotaPos(oq); state.drag={kind:'opq', idx:oq, c0:c, p0:{x:sx,y:sy}}; return; }
       const li = hitLabel(sx,sy);
-      if (li!==null) { const w=s2w(sx,sy); state.drag={kind:'label', idx:li, ox:w.x-state.labels[li].x, oy:w.y-state.labels[li].y}; return; }
+      if (li!==null && !locked(state.labels[li])) { const w=s2w(sx,sy); state.drag={kind:'label', idx:li, ox:w.x-state.labels[li].x, oy:w.y-state.labels[li].y}; return; }
       const gq = hitQuota(sx,sy);
       if (gq!==null) { const q=quotaInfo(gq); state.drag={kind:'quota', idx:gq, c0:{x:q.cx,y:q.cy}, p0:{x:sx,y:sy}}; return; }
       const al = hitAmbLabel(sx,sy);
       if (al!==null) { const c=ambLabelPos(state.ambienti[al]); state.drag={kind:'ambl', idx:al, c0:c, p0:{x:sx,y:sy}}; return; }
       const qi = hitPilastro(sx,sy);
-      if (qi!==null) { const w=s2w(sx,sy); state.drag={kind:'pilastro', idx:qi, ox:w.x-state.pilastri[qi].x, oy:w.y-state.pilastri[qi].y}; return; }
+      if (qi!==null && !locked(state.pilastri[qi])) { const w=s2w(sx,sy); state.drag={kind:'pilastro', idx:qi, ox:w.x-state.pilastri[qi].x, oy:w.y-state.pilastri[qi].y}; return; }
       const ci = hitScala(sx,sy);
-      if (ci!==null) { const w=s2w(sx,sy); state.drag={kind:'scala', idx:ci, ox:w.x-state.scale[ci].x, oy:w.y-state.scale[ci].y}; return; }
+      if (ci!==null && !locked(state.scale[ci])) { const w=s2w(sx,sy); state.drag={kind:'scala', idx:ci, ox:w.x-state.scale[ci].x, oy:w.y-state.scale[ci].y}; return; }
       state.selBox={x0:sx,y0:sy,x1:sx,y1:sy,keep,base};   // vuoto: riquadro di selezione
       return;
     }
     case 'split': {                        // in Spezza i punti si trascinano subito
       const pi = hitPoint(sx,sy);
-      if (pi!==null) { state.drag={kind:'point', idx:pi}; return; }
+      if (pi!==null && !locked(state.points[pi])) { state.drag={kind:'point', idx:pi}; return; }
       startPan(e.clientX, e.clientY); return;
     }
     default:
@@ -3187,14 +3366,14 @@ function updateSelSet() {
   state.selSet = new Set(); state.selOpen = new Set();
   state.points.forEach((p,i) => {
     const s = w2s(p.x,p.y);
-    if (s.x>=x0 && s.x<=x1 && s.y>=y0 && s.y<=y1) state.selSet.add(i);
+    if (!hid(p) && s.x>=x0 && s.x<=x1 && s.y>=y0 && s.y<=y1) state.selSet.add(i);
   });
   state.openings.forEach((_,i) => {
     const p = openingPos(i);
     if (p && p.sx>=x0 && p.sx<=x1 && p.sy>=y0 && p.sy<=y1) state.selOpen.add(i);
   });
   state.selPen = new Set();
-  state.pencilLines.forEach((l,i) => { if (l.pts.some(p => { const s=w2s(p.x,p.y); return s.x>=x0 && s.x<=x1 && s.y>=y0 && s.y<=y1; })) state.selPen.add(i); });
+  state.pencilLines.forEach((l,i) => { if (!hid(l) && l.pts.some(p => { const s=w2s(p.x,p.y); return s.x>=x0 && s.x<=x1 && s.y>=y0 && s.y<=y1; })) state.selPen.add(i); });
   if (b.base) ['selSet','selOpen','selPen'].forEach(k => b.base[k].forEach(i => state[k].add(i)));      // riquadro che aggiunge (Shift o selezione multipla)
   state.selSeg = new Set();
   const inR = (x,y) => x>=x0 && x<=x1 && y>=y0 && y<=y1;
@@ -3204,7 +3383,7 @@ function updateSelSet() {
     return t>=0 && t<=1 && u>=0 && u<=1;
   };
   state.segments.forEach((g,i) => {
-    const A = state.points[g.a], B = state.points[g.b]; if (!A||!B) return;
+    const A = state.points[g.a], B = state.points[g.b]; if (!A||!B||hid(g)) return;
     const a = w2s(A.x,A.y), b = w2s(B.x,B.y);
     if (inR(a.x,a.y) || inR(b.x,b.y) ||
         cross(a.x,a.y,b.x,b.y,x0,y0,x1,y0) || cross(a.x,a.y,b.x,b.y,x1,y0,x1,y1) ||
@@ -3311,7 +3490,7 @@ const photoStore = new Map(); let photoSeq = 0;
 // COMPATIBILITA' DEI PROGETTI: un rilievo di qualsiasi versione si apre sempre. Ogni modifica del formato dei dati
 // alza DATA_FMT e aggiunge qui il suo passo, che aggiorna il progetto e dice cosa e' cambiato e cosa controllare a mano.
 // I passi si applicano in ordine dal formato del progetto in poi. Formato 1 = progetti fino alla 2.02 (senza "fmt").
-const DATA_FMT = 2;
+const DATA_FMT = 3;
 const MIGRATIONS = [
   { fmt:2, ver:'2.03', run:o => {
     (o.ambienti||[]).forEach(a => { if (a.outdoor && !a.category) a.category = 'balconi'; delete a.outdoor; });   // flag "senza volume" delle 1.16-1.19
@@ -3320,6 +3499,10 @@ const MIGRATIONS = [
       nCom ? 'Muri: ora le classi sono quattro, ognuna col suo colore. '+(nCom===1 ? 'Il muro "In comunione" è diventato' : 'I '+nCom+' muri "In comunione" sono diventati')+' "Verso altre unità riscaldate": quelli che danno sul vano scala o su locali non riscaldati cambiali da Spessore e tipo (giallo).' : '',
       (o.ambienti||[]).length ? 'Ambienti: il nome ora si sceglie da elenco (Camera 1, Bagno 1...). I nomi che hai dato restano; per la numerazione automatica scegli il nome da Modifica ambiente.' : '',
     ].filter(Boolean);
+  }},
+  { fmt:3, ver:'2.04', run:o => {
+    FASE_KEYS.forEach(k => (o[k]||[]).forEach(el => { if (!el.fase) el.fase = 'es'; }));   // tutto quello che c'era e' il rilievo
+    return ['Nuovo: Stato di fatto e Progetto. Il disegno che hai è lo stato di fatto; il Progetto (demolizioni in giallo, nuovo in rosso) si apre dal pulsante SdF nella barra.'];
   }},
 ];
 // aggiorna il progetto letto (file o browser) al formato corrente; restituisce le note per chi lo apre ([] se era gia' aggiornato)
@@ -3373,6 +3556,7 @@ function undo() {
 }
 // commit = aggiorna barra di stato, ridisegna e salva
 function commit(msg, keepTool){
+  assignFase();
   state.measureShow=null;
   if (state.wallOrigin!==null && !state.points[state.wallOrigin]) state.wallOrigin = null;    // vertice sparito (annulla, cancella tutto): niente muro appeso
   if (!keepTool && state.tool!=='select' && state.tool!=='point' && !(state.tool==='wall' && state.wallOrigin!==null)) setTool('select');
@@ -3600,7 +3784,7 @@ function layoutPrint() {
   // linee che un testo non deve coprire: muri (gia' interrotti dai varchi), spalle e simboli dei serramenti
   const lines = [];
   state.segments.forEach((g,i) => {
-    const A = state.points[g.a], B = state.points[g.b]; if (!A || !B) return;
+    const A = state.points[g.a], B = state.points[g.b]; if (!A || !B || hid(g)) return;
     const a = w2s(A.x,A.y), b = w2s(B.x,B.y);
     segPieces(i, CUTS).forEach(([t0,t1]) => lines.push({ax:a.x+(b.x-a.x)*t0, ay:a.y+(b.y-a.y)*t0, bx:a.x+(b.x-a.x)*t1, by:a.y+(b.y-a.y)*t1, own:i, inf:1}));
   });
@@ -3686,24 +3870,28 @@ function drawScaleBar(den, Hl) {
   ctx.fillStyle = '#000'; ctx.font = '11px Segoe UI'; ctx.textBaseline = 'top'; ctx.textAlign = 'center';
   ctx.fillText('0', x0, y0+hh+3); ctx.fillText(L+' m', x0+lenL, y0+hh+3);
   ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.font = 'bold 13px Segoe UI';
-  ctx.fillText('Scala 1:'+den, x0+lenL+14*pm/3.78, y0+hh/2);
+  ctx.fillText('Scala 1:'+den+(hasProject() ? ' - '+viewName() : ''), x0+lenL+14*pm/3.78, y0+hh/2);
   ctx.restore();
 }
 
 // legenda dei tratti dei muri nel piede della pagina, a destra: solo le classi presenti, e solo se ce n'e' piu' d'una
 function drawWallLegend(Wl, Hl) {
-  const used = new Set(state.segments.filter(g => state.points[g.a] && state.points[g.b]).map(wallClass));
-  if (used.size < 2) return;
+  const segs = state.segments.filter(g => state.points[g.a] && state.points[g.b] && !hid(g));
+  const used = new Set(segs.filter(g => !faseCol(g)).map(wallClass));
+  const fases = prog() ? ['demo','nuovo'].filter(f => segs.some(g => g.fase===f) || state.openings.some(o => o.fase===f)) : [];
+  if (used.size + fases.length < 2) return;
   const pm = 96/25.4, sw = 8*pm, gap = 3*pm, avail = Wl - 90*pm;          // a sinistra resta la scala grafica
   ctx.save(); ctx.font = '9px Segoe UI'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#000'; ctx.strokeStyle = '#000';
-  const items = Object.keys(WALL_STYLE).filter(k => used.has(k)).map(k => ({st:WALL_STYLE[k], w:sw + 1.5*pm + ctx.measureText(WALL_STYLE[k].name).width}));
+  const items = Object.keys(WALL_STYLE).filter(k => used.has(k)).map(k => WALL_STYLE[k])
+    .concat(fases.map(f => ({name:f==='demo' ? 'Demolito' : 'Nuovo', col:FASE_COL[f][1], dash:[], w:0.5})))
+    .map(st => ({st, w:sw + 1.5*pm + ctx.measureText(st.name).width}));
   const rows = [[]]; let rw = 0;                                             // se non sta su una riga, va su due
   items.forEach(it => { if (rw && rw + gap + it.w > avail) { rows.push([]); rw = 0; } rows[rows.length-1].push(it); rw += (rw ? gap : 0) + it.w; });
   rows.forEach((row, r) => {
     const y = Hl - (rows.length > 1 ? 12 - 4.5*r : 9.5)*pm;
     let x = Wl - 10*pm - row.reduce((t,it) => t + it.w + gap, -gap);
     row.forEach(({st, w}) => {
-      ctx.lineWidth = st.w*pm; ctx.setLineDash(st.dash.map(v => v*pm));
+      ctx.lineWidth = st.w*pm; ctx.setLineDash(st.dash.map(v => v*pm)); ctx.strokeStyle = st.col && st.col[0]==='#' ? st.col : '#000';
       ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x+sw, y); ctx.stroke(); ctx.setLineDash([]);
       ctx.fillText(st.name, x + sw + 1.5*pm, y); x += w + gap;
     });
@@ -3745,15 +3933,18 @@ function makePdf(pages) {
 function expGo() {
   const E = state.exp; if (!E) return;
   const den = expDen(E), o = expFit(E, den); if (!o) return;
-  const kind = E.kind, cv = renderExport(E, den, o);
+  // confronto (E.both): tavola dello stato di fatto, tavola del progetto, tabelle di entrambi; le quantita' una volta sola
+  const kind = E.kind, ids = E.tables || [], views = E.both ? ['sdf','prog'] : [state.view];
+  const plans = views.map(v => withView(v, () => renderExport(E, den, o)));
+  const tabs = E.both ? withView('sdf', () => tablePages(ids.filter(t => t!=='lav'))).concat(withView('prog', () => tablePages(ids))) : tablePages(ids);
   expCancel();
-  const base = stamp()+'_rilievo_1-'+den;
-  Promise.all([cv].concat(tablePages(E.tables || [])).map(canvasJpg)).then(([plan, ...tabs]) => {
+  const base = stamp()+'_rilievo_1-'+den+(hasProject() && !E.both ? (prog() ? '_progetto' : '_stato_di_fatto') : '');
+  Promise.all(plans.concat(tabs).map(canvasJpg)).then(pp => {
+    const plan = pp[0], tb = pp.slice(plans.length).filter(Boolean);
     if (!plan) { setTip('Export non riuscito: prova con una zona più piccola.'); return; }
     if (kind==='jpg') { download(base+'.jpg', plan.jpg, 'image/jpeg'); setTip('JPG A4 in scala 1:'+den+' (300 dpi).'); return; }
-    tabs = tabs.filter(Boolean);
-    download(base+(kind==='full' ? '_completo' : '')+'.pdf', makePdf([plan].concat(tabs)), 'application/pdf');
-    setTip('PDF A4 in scala 1:'+den+(tabs.length ? ', più '+tabs.length+(tabs.length===1 ? ' pagina' : ' pagine')+' di tabelle.' : '.'));
+    download(base+(E.both ? '_confronto' : kind==='full' ? '_completo' : '')+'.pdf', makePdf(pp.slice(0, plans.length).filter(Boolean).concat(tb)), 'application/pdf');
+    setTip('PDF A4 in scala 1:'+den+(plans.length>1 ? ': stato di fatto e progetto' : '')+(tb.length ? ', più '+tb.length+(tb.length===1 ? ' pagina' : ' pagine')+' di tabelle.' : '.'));
   });
 }
 
@@ -3769,7 +3960,7 @@ function exportDXF() {
   const n = v => (Math.round(v*10000)/10000).toFixed(4);
 
   const LAYERS = [['MURI',7],['MURI_EST',1],['QUOTE',2],['SERRAMENTI',5],
-                  ['AMBIENTI',4],['PILASTRI',8],['SCALE',6],['SCALE_TESTO',8],['ETICHETTE',1],['MATITA',30],['TABELLE',3]];
+                  ['AMBIENTI',4],['PILASTRI',8],['SCALE',6],['SCALE_TESTO',8],['ETICHETTE',1],['MATITA',30],['TABELLE',3],['DEMOLIZIONI',2],['COSTRUZIONI',1]];
 
   // --- HEADER
   g(0,'SECTION'); g(2,'HEADER');
@@ -3819,19 +4010,20 @@ function exportDXF() {
 
   // muri (interrotti dai varchi dei serramenti, con le spalle) + quote
   const cuts = wallCuts();
+  const lay = (el, def) => (prog() && FASE_LAYER[el.fase]) || def;
   state.segments.forEach((s,i) => {
-    const A=state.points[s.a], B=state.points[s.b]; if(!A||!B) return;
-    segPieces(i, cuts).forEach(([t0,t1]) => line(s.layer||'MURI', A.x+(B.x-A.x)*t0, A.y+(B.y-A.y)*t0, A.x+(B.x-A.x)*t1, A.y+(B.y-A.y)*t1));
+    const A=state.points[s.a], B=state.points[s.b]; if(!A||!B||hid(s)) return;
+    segPieces(i, cuts).forEach(([t0,t1]) => line(lay(s, s.layer||'MURI'), A.x+(B.x-A.x)*t0, A.y+(B.y-A.y)*t0, A.x+(B.x-A.x)*t1, A.y+(B.y-A.y)*t1));
     if (s.layer!=='MURI_EST')                     // i muri esterni non portano quota
       text('QUOTE', (A.x+B.x)/2+(s.qo?s.qo.x:0), (A.y+B.y)/2+(s.qo?s.qo.y:0.08), 0.12,
            Math.hypot(B.x-A.x,B.y-A.y).toFixed(2)+' m', true);
   });
-  cuts.jambs.forEach(j => { const s = state.segments[j.si]; line((s && s.layer)||'MURI', j.a.x, j.a.y, j.b.x, j.b.y); });
+  cuts.jambs.forEach(j => { const s = state.segments[j.si]; line(s ? lay(s, s.layer||'MURI') : 'MURI', j.a.x, j.a.y, j.b.x, j.b.y); });
 
   // ambienti da poligono; etichetta portata fuori dall'ambiente = linea di richiamo fino al testo
   state.ambienti.forEach(a => {
     const pts = a.indices.map(i=>state.points[i]).filter(Boolean);
-    if (pts.length<3) return;
+    if (pts.length<3 || !live(a)) return;
     poly('AMBIENTI', pts, true);
     const cc = ambCenter(a), cx = cc.x+(a.lo?a.lo.x:0), cy = cc.y+(a.lo?a.lo.y:0), net = ambNet(a);
     const info = net.toFixed(2)+' mq  h='+a.h+' m'+(ambNoVol(a) ? '' : '  '+(net*a.h).toFixed(2)+' mc');
@@ -3863,30 +4055,33 @@ function exportDXF() {
 
   // serramenti
   state.openings.forEach(op => {
-    const s = state.segments[op.segIdx]; if(!s) return;
+    const s = state.segments[op.segIdx]; if(!s || hid(op)) return;
     const A=state.points[s.a], B=state.points[s.b]; if(!A||!B) return;
     const len = Math.hypot(B.x-A.x, B.y-A.y); if (len===0) return;
+    const SL = lay(op, 'SERRAMENTI');
     const mx=A.x+(B.x-A.x)*op.t, my=A.y+(B.y-A.y)*op.t;
     const ux=(B.x-A.x)/len, uy=(B.y-A.y)/len, hw=op.width/2;
-    line('SERRAMENTI', mx-ux*hw, my-uy*hw, mx+ux*hw, my+uy*hw);
+    line(SL, mx-ux*hw, my-uy*hw, mx+ux*hw, my+uy*hw);
     // trattini di battuta agli stipiti
-    line('SERRAMENTI', mx-ux*hw+uy*0.06, my-uy*hw-ux*0.06, mx-ux*hw-uy*0.06, my-uy*hw+ux*0.06);
-    line('SERRAMENTI', mx+ux*hw+uy*0.06, my+uy*hw-ux*0.06, mx+ux*hw-uy*0.06, my+uy*hw+ux*0.06);
+    line(SL, mx-ux*hw+uy*0.06, my-uy*hw-ux*0.06, mx-ux*hw-uy*0.06, my-uy*hw+ux*0.06);
+    line(SL, mx+ux*hw+uy*0.06, my+uy*hw-ux*0.06, mx+ux*hw-uy*0.06, my+uy*hw+ux*0.06);
     const H = opHb(op), st = op.h0 ?? OPENING_DEF[op.type].h0;
     let info = op.label+' '+(+op.width).toFixed(2)+'x'+(+H).toFixed(2);
     if (op.type==='F') info += ' st'+(+st).toFixed(2);
-    text('SERRAMENTI', mx, my+0.14, 0.10, info, true);
+    text(SL, mx, my+0.14, 0.10, info, true);
   });
 
   // pilastri
   state.pilastri.forEach(p => {
-    rect('PILASTRI', p);
+    if (hid(p)) return;
+    rect(lay(p, 'PILASTRI'), p);
     text('PILASTRI', p.x+p.w/2, p.y-p.h/2, 0.09,
          p.label+' '+Math.round(p.w*100)+'x'+Math.round(p.h*100), true);
   });
 
   // scale: ingombro, gradini, freccia di salita; il testo sta in un layer a parte (SCALE_TESTO)
   state.scale.forEach(c => {
+    if (hid(c)) return;
     rect('SCALE', c);
     const b = stairB(c), st = c.sgn>0 ? b.a0 : b.a1;
     for (let k=1; k<c.n; k++) {
@@ -3906,17 +4101,17 @@ function exportDXF() {
   });
 
   // etichette e note dei punti (i nomi dei punti non si esportano)
-  state.labels.forEach(l => text('ETICHETTE', l.x, l.y, 0.15, l.text));
+  state.labels.forEach(l => !hid(l) && text('ETICHETTE', l.x, l.y, 0.15, l.text));
   state.points.forEach(p => {
     if (p.note)  text('ETICHETTE', p.x+0.06, p.y-0.14, 0.08, 'NOTA: '+p.note);
     if (p.photo) text('ETICHETTE', p.x+0.06, p.y-0.26, 0.08, '[FOTO]');
   });
 
-  state.pencilLines.forEach(l => poly('MATITA', l.pts, false));
+  state.pencilLines.forEach(l => !hid(l) && poly('MATITA', l.pts, false));
 
   g(0,'ENDSEC'); g(0,'EOF');
 
-  download(stamp()+'_rilievo.dxf', L.join('\r\n'), 'application/dxf');
+  download(stamp()+'_rilievo'+(hasProject() ? (prog() ? '_progetto' : '_stato_di_fatto') : '')+'.dxf', L.join('\r\n'), 'application/dxf');
   setTip('DXF esportato in formato R12, unità metri. Layer separati per muri, quote, serramenti, pilastri, scale, ambienti (con tabella riassuntiva).');
 }
 
@@ -3933,7 +4128,56 @@ const TABLES = [
   {id:'amb',  title:'Ambienti',               file:'ambienti',               data:ambTable},
   {id:'serr', title:'Serramenti',             file:'serramenti',             data:openingsTable},
   {id:'comm', title:'Superficie commerciale', file:'superficie_commerciale', data:commTable},
+  {id:'lav',  title:'Demolizioni e costruzioni', file:'demolizioni_costruzioni', data:lavTable},
 ];
+// titolo della tabella: con un progetto in corso dice di quale stato e'; le quantita' sono sempre del Progetto
+function tableTitle(t) { return (!hasProject() ? 'Rilievo' : t.id==='lav' ? 'Progetto' : viewName())+' - '+t.title; }
+function tableFile(t) { return t.file+(hasProject() && t.id!=='lav' ? (prog() ? '_progetto' : '_stato_di_fatto') : ''); }
+// ═══ DEMOLIZIONI E COSTRUZIONI: le quantita' del Progetto. Muri: le due facce dello stesso muro contano una volta
+// (spessore = distanza tra le facce); una linea sola vale come muro con lo spessore scritto, o 10 cm (presunto).
+// Altezza = quella dell'ambiente che ha il muro sul bordo, o che lo contiene. Superficie al netto dei serramenti
+// che stanno nel muro, volume = superficie x spessore.
+function wallH(si) {
+  const g = state.segments[si], A = state.points[g.a], B = state.points[g.b], M = {x:(A.x+B.x)/2, y:(A.y+B.y)/2};
+  let h = 0, hin = 0;
+  state.ambienti.forEach(a => {
+    const pts = a.indices.map(i => state.points[i]).filter(Boolean); if (pts.length < 3) return;
+    if (pts.some((P,k) => { const Q = pts[(k+1)%pts.length]; return distPtSeg(M.x, M.y, P.x, P.y, Q.x, Q.y) < 0.03; })) h = Math.max(h, a.h);
+    else if (inPoly(pts, M.x, M.y)) hin = Math.max(hin, a.h);
+  });
+  return h || hin || lastAmbH();
+}
+function lavTable() {
+  if (!hasProject()) return null;
+  const f = v => v.toFixed(2), pl = i => state.points[i] ? state.points[i].label : '?', rows = [];
+  const thick = (si, ok) => { const fc = wallFaces(si, ok); return fc.length>1 ? faceDist(si, fc[1]) : state.segments[si].thick || 0.10; };
+  ['demo','nuovo'].forEach(fase => {
+    const used = new Set(); let S = 0, V = 0, n = 0;
+    state.segments.forEach((g,i) => {
+      const A = state.points[g.a], B = state.points[g.b];
+      if (g.fase!==fase || used.has(i) || !A || !B) return;
+      const faces = wallFaces(i, h => h.fase===fase).filter(k => !used.has(k)); faces.forEach(k => used.add(k));
+      const L = Math.hypot(B.x-A.x, B.y-A.y), h = wallH(i), t = faces.length>1 ? faceDist(i, faces[1]) : g.thick || 0.10;
+      const ap = state.openings.filter(o => faces.includes(o.segIdx)).reduce((a,o) => a + o.width*opHb(o), 0);
+      const sup = Math.max(0, L*h - ap), vol = sup*t;
+      S += sup; V += vol; n++;
+      rows.push([fase==='demo' ? 'Demolizione muro' : 'Nuovo muro', pl(g.a)+'-'+pl(g.b), wallName(wallClass(g)), f(L), f(h), f(t), f(sup), f(vol),
+                 [ap ? 'meno '+f(ap).replace('.', ',')+' m² di serramenti' : '', faces.length>1 || g.thick ? '' : 'spessore presunto'].filter(Boolean).join(', ')]);
+    });
+    if (n) rows.push([fase==='demo' ? 'Totale demolizioni muri' : 'Totale nuovi muri', '', '', '', '', '', f(S), f(V), '']);
+  });
+  // serramenti: rimossi e nuovi; un nuovo serramento in un muro del rilievo che resta apre un varco, se non sostituisce un rimosso
+  state.openings.forEach(o => {
+    if (o.fase!=='demo' && o.fase!=='nuovo') return;
+    const g = state.segments[o.segIdx], H = opHb(o), a = o.width*H, tipo = OP_TXT.tipo[o.type]||o.type;
+    if (o.fase==='demo') { rows.push(['Rimozione serramento', o.label, tipo, f(o.width), f(H), '', f(a), '', g && g.fase==='demo' ? 'nel muro demolito' : '']); return; }
+    const sw = g && g.fase==='es' ? demoAt(o.segIdx, o.t) : null;
+    rows.push([o.type==='P' && g && wallClass(g)==='' ? 'Nuova porta interna' : 'Nuovo serramento', o.label, tipo, f(o.width), f(H), '', f(a), '', sw ? 'al posto di '+sw.label : '']);
+    if (g && g.fase==='es' && !sw) { const t = thick(o.segIdx, h => h.fase==='es'); rows.push(['Apertura varco in muro esistente', o.label, wallName(wallClass(g)), f(o.width), f(H), f(t), f(a), f(a*t), '']); }
+  });
+  if (!rows.length) return null;
+  return {head:['Voce','Elemento','Tipo','Lunghezza o larghezza (m)','Altezza (m)','Spessore (m)','Superficie (m²)','Volume (m³)','Note'], rows};
+}
 // colonne da mostrare: via quelle senza dati (le righe dei totali non contano) e, in pagina, quelle di dettaglio.
 // Decimali con la virgola, come li legge Excel in italiano.
 function tableView(d, page) {
@@ -3944,9 +4188,9 @@ function tableView(d, page) {
   return {head:pick(d.head), rows:d.rows.map(pick)};
 }
 function ambTable() {
-  if (!state.ambienti.length) return null;
+  const rooms = state.ambienti.filter(live); if (!rooms.length) return null;
   const cuts = wallCuts(), f = v => v.toFixed(2), T = {area:0, vol:0, lorde:0, ap:0, nette:0};
-  const rows = state.ambienti.map(a => {
+  const rows = rooms.map(a => {
     const net = ambNet(a), pw = ambWalls(a, cuts), vol = ambNoVol(a) ? null : net*a.h;
     T.area += net; if (vol!=null) T.vol += vol;
     if (pw) { T.lorde += pw.lorde; T.ap += pw.ap; T.nette += pw.nette; }
@@ -3958,9 +4202,9 @@ function ambTable() {
 }
 // serramenti: dimensioni sempre, dati energetici dove compilati; specchiatura scritta a mano o calcolata dalla bucatura
 function openingsTable() {
-  if (!state.openings.length) return null;
+  const ops = state.openings.filter(live); if (!ops.length) return null;
   const f = (v, d) => (+v).toFixed(d||2), T = {buc:0, vetr:0, tel:0}, X = OP_TXT;
-  const rows = state.openings.map(op => {
+  const rows = ops.map(op => {
     const e = op.energy || {}, ar = openingAreas(op), gl = openingGlass(op);
     T.buc += ar.bucatura; T.vetr += ar.vetrata || 0; T.tel += ar.telaio || 0;
     return [op.label, X.tipo[op.type]||op.type, f(op.width), f(opHb(op)), op.type==='F' && op.h0 ? f(op.h0) : '', op.spessore ? f(op.spessore) : '',
@@ -3983,11 +4227,11 @@ function downloadCSV(name, rows) {
 // (scaglione oltre i 25 mq compreso), piu' i muri classificati e il promemoria delle parti condominiali.
 // Tabella come le altre (vedi TABLES); null se nulla e' classificato.
 function commTable() {
-  const classificato = state.ambienti.some(a => a.category) || state.segments.some(s => s.commType);
+  const classificato = state.ambienti.some(a => a.category && live(a)) || state.segments.some(s => s.commType && live(s));
   if (!classificato) return null;
 
   const tot = {};
-  state.ambienti.forEach(a => { if (!a.category) return; tot[a.category] = (tot[a.category]||0) + ambNet(a); });
+  state.ambienti.forEach(a => { if (!a.category || !live(a)) return; tot[a.category] = (tot[a.category]||0) + ambNet(a); });
 
   // LORDO (DPR 138/98, come la riga 72 dell'Excel di riferimento): con il contorno esterno del ricalco (anelli MURI_EST)
   // i muri = area dentro il contorno - ambienti dentro; cosi' entrano muri interni, perimetrali e pilastri. Al vicino va
@@ -4008,12 +4252,12 @@ function commTable() {
     });
     state.ambienti.forEach(a => {
       const pts = a.indices.map(i => state.points[i]).filter(Boolean), c = ambCenter(a);
-      if (pts.length>=3 && c && polys.some(p => inPoly(p, c.x, c.y))) aIn += Math.abs(shoelace(pts));
+      if (live(a) && pts.length>=3 && c && polys.some(p => inPoly(p, c.x, c.y))) aIn += Math.abs(shoelace(pts));
     });
     muriLordo = Math.max(0, aCont - aIn - corr);
   } else {
     state.segments.forEach(g => {
-      if (!g.commType || !g.thick) return;
+      if (!g.commType || !g.thick || !live(g)) return;
       const len = segLen(g);
       if (g.commType==='perimetrale') muriPerim += len * Math.min(g.thick, 0.50);
       if (wallCom(g))                 muriCom   += len * Math.min(g.thick*0.5, 0.25);    // meta' spessore, al massimo 25 cm
@@ -4073,7 +4317,7 @@ function tablePages(ids) {
     for (let r0 = 0; r0 < rows.length; r0 += per) {
       const cv = document.createElement('canvas'); cv.width = pw; cv.height = ph;
       const c = cv.getContext('2d'); c.fillStyle = '#fff'; c.fillRect(0, 0, pw, ph); c.textBaseline = 'middle';
-      c.fillStyle = '#000'; c.font = font(14, true); c.fillText('Rilievo - '+t.title+(r0 ? ' (segue)' : ''), M, M + Math.round(4*mm));
+      c.fillStyle = '#000'; c.font = font(14, true); c.fillText(tableTitle(t)+(r0 ? ' (segue)' : ''), M, M + Math.round(4*mm));
       c.font = font(9, false); c.textAlign = 'right'; c.fillText(day, pw - M, M + Math.round(4*mm)); c.textAlign = 'left';
       c.fillStyle = '#e4e8ee'; c.fillRect(M, top, avail, headH);
       let x = M; c.fillStyle = '#000'; c.font = font(9, true);
@@ -4121,6 +4365,7 @@ function exportTablesMenu(mode) {
   const av = TABLES.filter(t => t.data());
   if (mode==='tab' && !av.length) { setTip('Nessuna tabella da esportare: servono ambienti, serramenti o muri e ambienti classificati.'); return; }
   const fields = av.map(t => ({label:t.title, id:'t_'+t.id, type:'check', value:'1'}));
+  if (mode==='full' && hasProject()) fields.push({label:'Stato di fatto e Progetto: le due tavole e le tabelle di entrambi', id:'both', type:'check', value:'1'});
   if (mode==='tab') fields.push({label:'Formato', id:'fmt', type:'select', value:'pdf',
     options:[{value:'pdf', label:'PDF - un file con tutte le pagine'}, {value:'jpg', label:'JPG - un\'immagine per pagina'},
              {value:'csv', label:'CSV - per Excel, un file per tabella con tutte le colonne'}]});
@@ -4128,10 +4373,10 @@ function exportTablesMenu(mode) {
     mode==='tab' ? 'Ci sono solo le tabelle che il rilievo ha: togli la spunta a quelle da non esportare.'
                  : 'Un solo PDF: il disegno in scala, poi le tabelle spuntate. Dopo OK scegli zona e scala del disegno.', v => {
     const ids = av.filter(t => v['t_'+t.id]).map(t => t.id);
-    if (mode==='full') { startExport('full'); if (state.exp) state.exp.tables = ids; return; }
+    if (mode==='full') { startExport('full'); if (state.exp) { state.exp.tables = ids; state.exp.both = !!v.both; } return; }
     if (!ids.length) { setTip('Nessuna tabella spuntata.'); return; }
     if (v.fmt==='csv') {
-      av.filter(t => ids.includes(t.id)).forEach(t => { const tv = tableView(t.data(), false); downloadCSV(stamp()+'_'+t.file+'.csv', [tv.head].concat(tv.rows)); });
+      av.filter(t => ids.includes(t.id)).forEach(t => { const tv = tableView(t.data(), false); downloadCSV(stamp()+'_'+tableFile(t)+'.csv', [tv.head].concat(tv.rows)); });
       setTip('Tabelle esportate in CSV: '+ids.length+(ids.length===1 ? ' file.' : ' file, uno per tabella.')); return;
     }
     Promise.all(tablePages(ids).map(canvasJpg)).then(pp => {
@@ -4636,7 +4881,7 @@ function toggleMagnet() {
 }
 function updateMagnetBtn() { const b = document.getElementById('mag-btn'); if (b) { setTxt(b, magnetOn ? '🧲' : '🧲 spenta'); b.classList.toggle('off', !magnetOn); } }
 function toggleHand() { state.handMode = !state.handMode; state.moveBase = false; state.moveSel = false; clearAssist(); setTip(state.handMode ? 'Mano: trascina con un dito per spostare la vista. Tocca di nuovo ✋ per finire.' : (TIPS[state.tool] || '')); draw(); }
-function toggleMoveSel()  { state.moveSel = !state.moveSel; state.moveBase = false; setTip(state.moveSel ? 'Trascina in un punto qualsiasi: si sposta tutta la selezione. Tocca di nuovo il pulsante per finire.' : 'Spostamento terminato.'); draw(); }
+function toggleMoveSel()  { if (!state.moveSel && selHasLocked()) { lockTip(); return; } state.moveSel = !state.moveSel; state.moveBase = false; setTip(state.moveSel ? 'Trascina in un punto qualsiasi: si sposta tutta la selezione. Tocca di nuovo il pulsante per finire.' : 'Spostamento terminato.'); draw(); }
 function toggleMoveBase() { if (!state.underlay) return; state.moveBase = !state.moveBase; state.moveSel = false; setTip(state.moveBase ? 'Trascina per spostare la base sotto il disegno. Tocca di nuovo "Sposta base" per finire.' : 'Base posizionata.'); draw(); }
 function toggleBasePanel() { hideAllMenus(); if (!state.underlay) { setTip('Nessuna base planimetria caricata.'); return; } if ($id('base-panel').classList.contains('show')) closeBasePanel(); else $id('base-panel').classList.add('show'); }
 function closeBasePanel() { $id('base-panel').classList.remove('show'); if (state.moveBase) { state.moveBase=false; setTip('Base posizionata.'); draw(); } }
@@ -5173,6 +5418,7 @@ function impConfirm() {
 let _wallsTimer = null;
 function wallsOpen() {
   if (!state.underlay) return;
+  if (prog()) { setTip('Il ricalco crea il rilievo: si fa nello Stato di fatto.'); return; }
   $id('walls-panel').classList.add('show'); wallsSchedule();
 }
 function wallsClose() { $id('walls-panel').classList.remove('show'); state.wallsPrev=null; draw(); }
@@ -5199,6 +5445,7 @@ function wallsRun() {
 }
 function wallsApply() {
   const P = state.wallsPrev; if (!P || !P.segs.length) return;
+  if (prog()) { setTip('Il ricalco crea il rilievo: si fa nello Stato di fatto.'); return; }
   saveHistory();
   const base = state.points.length, s0 = state.segments.length, h = lastAmbH();
   P.nodes.forEach(n => newPoint(n.x, n.y));
@@ -5279,7 +5526,8 @@ window.addEventListener('pagehide', persistNow);
 // ═══════════════════════════════════════════════════════════
 function toggleLegend() {
   const b = $id('leg-box'), open = b.style.display!=='block';
-  if (open) b.innerHTML = Object.keys(WALL_STYLE).map(k => '<div><i style="border-top-color:'+COL_SCREEN[WALL_STYLE[k].col]+(k==='nd' ? ';border-top-style:dashed' : '')+'"></i>'+WALL_STYLE[k].name+'</div>').join('');
+  if (open) b.innerHTML = Object.keys(WALL_STYLE).map(k => '<div><i style="border-top-color:'+COL_SCREEN[WALL_STYLE[k].col]+(k==='nd' ? ';border-top-style:dashed' : '')+'"></i>'+WALL_STYLE[k].name+'</div>').join('')+
+    (prog() ? '<div><i style="border-top-color:'+FASE_COL.demo[0]+'"></i>Demolito</div><div><i style="border-top-color:'+FASE_COL.nuovo[0]+'"></i>Nuovo</div>' : '');
   b.style.display = open ? 'block' : 'none';
 }
 
@@ -5316,6 +5564,13 @@ const GUIDE = [
     {t:'Tocca un muro, "Spessore e tipo": classe (Esterno, verso altre unità, verso vano scala) e spessore.', done:() => state.segments.some(g => g.commType)},
     {t:'Con il ricalco della catastale c\'è il contorno esterno, e i muri entrano al lordo in automatico.'},
     {t:'File, "Esporta tabelle", Superficie commerciale.', el:['#btn-file','#fm-tables']},
+  ]},
+  {title:'Progetto: demolizioni e costruzioni', sub:'Dal rilievo al progetto, con le quantità per il computo', steps:[
+    {t:'Tocca il pulsante SdF nella barra: diventa PRG e sei nel Progetto (bordo rosso). Il rilievo resta com\'è, bloccato.', el:['#btn-view'], done:() => prog()},
+    {t:'Tocca un muro interno, "Demolisci": diventa giallo, con la faccia opposta e i serramenti che contiene. I muri esterni e verso altre unità non si demoliscono.', done:() => state.segments.some(g => g.fase==='demo')},
+    {t:'Disegna i muri nuovi con "Muro" o "Stanza rettangolare": sono rossi. Le porte nuove con Inserisci.', el:['#btn-g-draw','#ti-wall','#ti-room'], done:() => state.segments.some(g => g.fase==='nuovo')},
+    {t:'Gli ambienti cambiati: tocca l\'ambiente vecchio, "Superato nel progetto", poi disegna il nuovo con "Ambiente da punti" toccando i vertici.', el:['#btn-g-draw','#ti-roompts'], done:() => state.ambienti.some(a => a.fase==='nuovo')},
+    {t:'File, "Esporta tabelle", Demolizioni e costruzioni: muri in m² e m³, serramenti rimossi e nuovi, varchi. Con "Esporta rilievo completo" hai anche le due tavole a confronto.', el:['#btn-file','#fm-tables','#fm-full']},
   ]},
   {title:'Esportare i risultati', sub:'Disegno in scala, tabelle, DXF per il CAD', steps:[
     {t:'File, "Esporta rilievo completo": un PDF con il disegno in scala e le tabelle che scegli.', el:['#btn-file','#fm-full']},
@@ -5369,6 +5624,7 @@ const recovered = restoreFromStorage();
 setTool('select');
 updateStatus();
 updateZoomLabel();
+updateViewUI();
 if (recovered) { centerView(); setTip('Rilievo precedente ripristinato: '+state.points.length+' punti. Usa File → Salva progetto per archiviarlo.'); }
 else {
   flagSaved('nuovo rilievo'); draw();
@@ -5380,8 +5636,8 @@ else {
 //  WEBAPP INSTALLABILE (solo se servita da internet, non da file locale)
 // ═══════════════════════════════════════════════════════════
 // versione e novita' vengono scritte da pubblica_app.py leggendo la prima voce di CHANGELOG.md
-const APP_VERSION = '2.03';
-const APP_NOTE = ["Guida: pulsante \"?\" con \"Cosa devi fare oggi?\" e cinque percorsi guidati che evidenziano i pulsanti da toccare e vanno avanti da soli. Ogni voce dei menu ha sotto una riga che dice a cosa serve", "Tabelle da una sola fonte per PDF, JPG, CSV e DXF; le colonne senza dati spariscono. Il CSV è passato dentro \"Esporta tabelle\", con i decimali con la virgola per Excel e tutte le colonne di dettaglio", "Pulsante 🎨 con la legenda dei colori dei muri: compare solo se ci sono muri classificati", "PDF e JPG del disegno: le classi dei muri si leggono dal tratto (continuo, tratto-punto, tratteggio, puntini), con la legenda nel piede", "I progetti di versioni precedenti si aprono sempre e vengono aggiornati: una finestra dice cosa è cambiato e cosa controllare nel disegno"];
+const APP_VERSION = '2.04';
+const APP_NOTE = ["Stato di fatto e Progetto: il pulsante SdF/PRG nella barra cambia vista. Il rilievo è lo stato di fatto; nel Progetto (bordo rosso) il rilievo è bloccato e il nuovo si disegna libero, in rosso", "Demolisci e Ripristina dal menu di muri, serramenti e ambienti (o sulla selezione multipla): il demolito è giallo. Il muro porta con sé la faccia opposta e i serramenti che contiene. Esterni, verso altre unità e verso il vano scala non si demoliscono e non ricevono varchi; un serramento nuovo può solo sostituire uno demolito nello stesso punto", "Nuova tabella \"Demolizioni e costruzioni\": muri demoliti e nuovi in m² e m³ (altezza dell'ambiente, al netto dei serramenti), serramenti rimossi e nuovi, porte interne nuove, varchi in muri esistenti", "Le tabelle seguono la vista: Stato di fatto o Progetto. \"Esporta rilievo completo\" può mettere a confronto le due tavole con le tabelle di entrambe; il DXF del Progetto ha i layer DEMOLIZIONI e COSTRUZIONI", "Nuovo strumento \"Ambiente da punti\" (Disegna): tocchi i vertici in ordine, utile per le stanze unite o divise del Progetto", "Guida: nuovo percorso \"Progetto: demolizioni e costruzioni\""];
 const IS_LOCAL = APP_VERSION.startsWith('__');
 document.getElementById('menu-version').textContent = IS_LOCAL ? 'Versione locale' : 'ℹ Versione '+APP_VERSION+' - novità';
 // finestra con un elenco puntato (novita', note di aggiornamento del progetto); extra = secondo elenco con titoletto
