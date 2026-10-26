@@ -218,6 +218,8 @@
   <div class="menu-item" onclick="exportSuperficieCommerciale()">🏠 Esporta superficie commerciale (CSV)</div>
   <div class="menu-item" onclick="startExport('jpg')">🖼 Esporta JPG</div>
   <div class="menu-item" onclick="startExport('pdf')">📄 Esporta PDF</div>
+  <div class="menu-item" onclick="exportTablesMenu('tab')">📊 Esporta tabelle (PDF/JPG)</div>
+  <div class="menu-item" onclick="exportTablesMenu('full')">📑 Esporta rilievo completo (PDF)</div>
   <div class="menu-item hi" onclick="saveProject()">💾 Salva progetto (.json)</div>
   <div class="menu-item hi" onclick="loadProject()">📂 Apri progetto (.json)</div>
   <div class="menu-item" onclick="clearAll()">🗑 Cancella tutto</div>
@@ -356,7 +358,7 @@
 <div id="sel-bar">
   <span id="selb-n" title="Elementi selezionati"></span>
   <button id="selb-add" title="Ogni tocco aggiunge o toglie un elemento" onclick="toggleMulti()">➕ Aggiungi</button>
-  <button id="selb-conf" title="Conferma il tipo proposto ai muri esterni da validare" onclick="confirmProposals()">✔ Conferma</button>
+  <button id="selb-conf" title="Conferma il tipo proposto ai muri non assegnati" onclick="confirmProposals()">✔ Conferma</button>
   <button id="selb-thick" title="Spessore e tipo dei muri selezionati" onclick="wallThickMenuAction()">📏 Spessore</button>
   <button id="selb-move" title="Sposta la selezione trascinando" onclick="toggleMoveSel()">✥ Sposta</button>
   <button id="selb-del" class="del" title="Elimina la selezione" onclick="deleteSelection()">🗑</button>
@@ -368,7 +370,7 @@
   <span id="sb-points">Punti: 0</span>
   <span id="sb-segments">Segmenti: 0</span>
   <span id="sb-valid">Misure validate: 0/0</span>
-  <span id="sb-dubbi" style="display:none;color:#ffb35c;cursor:pointer" title="Seleziona i muri esterni da validare" onclick="selectDubbi()"></span>
+  <span id="sb-dubbi" style="display:none;color:#ff4fd8;cursor:pointer" title="Seleziona i muri non assegnati (fucsia tratteggiati)" onclick="selectDubbi()"></span>
   <span id="sb-ambienti">Ambienti: 0</span>
   <span id="sb-coords">X:0.00 Y:0.00</span>
   <span id="sb-zoom">Zoom: 100%</span>
@@ -450,13 +452,13 @@ const state = {
 //  TAVOLOZZA (schermo scuro / stampa su bianco), QUOTE, SCALE
 // ═══════════════════════════════════════════════════════════
 const COL_SCREEN = {
-  wall:'#4a9eff', wallExt:'#b58cff', quota:'#ffe066', quotaOk:'#5ef38c', lead:'#8aa0c0',
+  wall:'#4a9eff', wallExt:'#b58cff', wallCom:'#3ddc84', wallNr:'#e6b800', wallNd:'#ff4fd8', quota:'#ffe066', quotaOk:'#5ef38c', lead:'#8aa0c0',
   win:'#00e5ff', door:'#ff9944', pf:'#aaff44',
   ambName:'#fff', ambArea:'#ffe066', ambH:'#fff', ambVol:'#aaddff', label:'#ffe066',
   stair:'#7aa8d0', stairArrow:'#cfe6ff',
 };
 const COL_PRINT = {
-  wall:'#000', wallExt:'#000', quota:'#222', quotaOk:'#222', lead:'#666',
+  wall:'#000', wallExt:'#000', wallCom:'#000', wallNr:'#000', wallNd:'#000', quota:'#222', quotaOk:'#222', lead:'#666',
   win:'#0a2a8a', door:'#6b3a10', pf:'#0a2a8a',
   ambName:'#000', ambArea:'#000', ambH:'#222', ambVol:'#222', label:'#000',
   stair:'#333', stairArrow:'#000',
@@ -496,6 +498,30 @@ function ambNet(am) {
   let a = Math.abs(shoelace(pts));
   state.scale.forEach(s => { if (inPoly(pts, s.x+s.w/2, s.y-s.h/2)) a -= s.w*s.h; });
   return Math.max(0, a);
+}
+// pareti di un ambiente: perimetro x altezza (lorde, vuoto per pieno) e nette, cioe' meno le aperture sul suo bordo.
+// Un serramento conta se sta su un lato dell'ambiente o sulla faccia opposta del suo muro: una porta tra due stanze
+// si toglie da entrambe. All'aperto niente pareti: null.
+function ambWalls(am, cuts) {
+  const pts = am.indices.map(i => state.points[i]).filter(Boolean);
+  if (pts.length < 3 || ambNoVol(am)) return null;
+  cuts = cuts || wallCuts();
+  const edges = pts.map((p,k) => [p, pts[(k+1)%pts.length]]);
+  const onEdge = c => c && edges.some(([p,q]) => distPtSeg(c.x, c.y, p.x, p.y, q.x, q.y) < 0.03);
+  const per = edges.reduce((t,[p,q]) => t + Math.hypot(q.x-p.x, q.y-p.y), 0);
+  let ap = 0, n = 0;
+  state.openings.forEach((op,i) => {
+    const c = openingCenterW(i), h = state.segments[cuts.opp[i]];
+    let o = null;                                            // centro del serramento riportato sulla faccia opposta
+    if (c && h && state.points[h.a] && state.points[h.b]) {
+      const C = state.points[h.a], D = state.points[h.b], dx = D.x-C.x, dy = D.y-C.y, l2 = dx*dx+dy*dy;
+      const t = l2 ? Math.max(0, Math.min(1, ((c.x-C.x)*dx + (c.y-C.y)*dy)/l2)) : 0;
+      o = {x:C.x+t*dx, y:C.y+t*dy};
+    }
+    if (onEdge(c) || onEdge(o)) { ap += op.width*opHb(op); n++; }
+  });
+  const lorde = per*am.h;
+  return {per, lorde, ap, n, nette:Math.max(0, lorde-ap)};
 }
 function ambCenter(am) {
   const pts = am.indices.map(i => state.points[i]).filter(Boolean);
@@ -603,7 +629,7 @@ function updateValid() {
   const el = document.getElementById('sb-valid'), txt = 'Misure validate: '+n+'/'+t;
   if (el && el.textContent !== txt) el.textContent = txt;
   const nd = state.segments.filter(g => g.cv==='dubbio').length, ed = document.getElementById('sb-dubbi');
-  if (ed) { setDisp(ed, nd ? '' : 'none'); setTxt(ed, '⚠ Muri da validare: '+nd); }
+  if (ed) { setDisp(ed, nd ? '' : 'none'); setTxt(ed, '⚠ Muri non assegnati: '+nd); }
 }
 
 // ---- quota dei serramenti: spostabile, con la linea di richiamo sempre tracciata
@@ -976,14 +1002,14 @@ function updateSelBar() {
   if (bar.style.left !== L) bar.style.left = L;
   if (bar.style.top !== T) bar.style.top = T;
 }
-// muri esterni da validare: dalla barra di stato si selezionano tutti; si tolgono dalla selezione quelli sbagliati e si confermano gli altri
+// muri non assegnati (tipo proposto da validare): dalla barra di stato si selezionano tutti; si tolgono dalla selezione quelli sbagliati e si confermano gli altri
 function selectDubbi() {
   const ids = state.segments.map((g,i) => g.cv==='dubbio' ? i : -1).filter(i => i>=0); if (!ids.length) return;
   setTool('select');
   state.selSeg = new Set(ids); state.multi = true;
   const g = state.segments[ids[0]], A = state.points[g.a], B = state.points[g.b];
   if (A && B) state.selAnchor = {x:(A.x+B.x)/2, y:(A.y+B.y)/2};
-  setTip(ids.length+' muri esterni da validare (tratteggiati). Togli dalla selezione quelli con la proposta sbagliata, poi "Conferma proposte".');
+  setTip(ids.length+' muri non assegnati (fucsia tratteggiati). Togli dalla selezione quelli con la proposta sbagliata, poi "Conferma proposte".');
   draw();
 }
 function confirmProposals() {
@@ -1060,12 +1086,12 @@ function wallCuts() {
   return {gaps, jambs, opp};
 }
 // ═══════════════════════════════════════════════════════════
-//  MURI ESTERNI (contorno MURI_EST del ricalco): l'app propone Perimetrale (verso l'esterno) o In comunione
-//  (verso altra unita' o parti comuni). Indizi: finestra o porta-finestra = esterno, porta = ingresso dalle parti
-//  comuni, balcone/terrazzo disegnato appena fuori = esterno; senza indizi decide lo spessore e il muro resta
+//  MURI ESTERNI (contorno MURI_EST del ricalco): l'app propone Esterno, Verso altre unita' riscaldate o Verso
+//  non riscaldati/vano scala. Indizi: finestra o porta-finestra = esterno, porta = ingresso dal vano scala,
+//  balcone/terrazzo disegnato appena fuori = esterno; senza indizi decide lo spessore e il muro resta
 //  "da validare" (tratteggiato, contato nella barra di stato). Un muro validato o compilato a mano non cambia piu'.
 // ═══════════════════════════════════════════════════════════
-const EXT_THICK_PERIM = 0.33;                // senza altri indizi: da qui in su si propone Perimetrale
+const EXT_THICK_PERIM = 0.33;                // senza altri indizi: da qui in su si propone Esterno
 // spessore (distanza dalla faccia interna parallela piu' vicina) e lato verso l'interno di un muro del contorno
 function extWallInfo(si) {
   const g = state.segments[si], A = state.points[g.a], B = state.points[g.b]; if (!A || !B) return null;
@@ -1121,14 +1147,14 @@ function classifyExtWalls(idxs, tDef) {
   });
 }
 // serramento inserito o modificato: il muro esterno su cui sta (o davanti a lui) prende il tipo, se non e' gia' deciso.
-// Finestra e porta-finestra = Perimetrale, porta = ingresso, quindi In comunione. Restituisce il messaggio da accodare.
+// Finestra e porta-finestra = Esterno, porta = ingresso, quindi verso il vano scala. Restituisce il messaggio da accodare.
 function classifyByOpening(i) {
   const op = state.openings[i]; if (!op) return '';
   const opp = wallCuts().opp[i];
   const si = [op.segIdx, opp].find(k => k!=null && state.segments[k] && state.segments[k].layer==='MURI_EST');
   if (si===undefined) return '';
   const g = state.segments[si]; if (g.cv!=='dubbio' && !g.cvOp) return '';
-  const type = op.type==='P' ? 'comunione' : 'perimetrale';
+  const type = op.type==='P' ? 'nonrisc' : 'perimetrale';
   g.commType = type; delete g.cv; g.cvOp = true;
   let n = 0;                                 // stessa facciata: i muri da validare in linea con questo prendono la stessa proposta (sempre da validare)
   if (type==='perimetrale') state.segments.forEach((h,k) => { if (k!==si && h.cv==='dubbio' && h.layer==='MURI_EST' && h.commType!==type && collinear(g,h)) { h.commType = type; n++; } });
@@ -1233,7 +1259,7 @@ function segMenuAction(action) {
   if (action==='thick') wallThickMenuAction([s.idx]);    // solo la linea toccata, anche se resta una selezione a riquadro
 }
 
-// spessore e tipo muro (Interno/Perimetrale/In comunione), per la superficie commerciale: dal menu della linea vale
+// spessore e tipo muro (classi di WALL_TYPES), per la superficie commerciale: dal menu della linea vale
 // per quella linea, dalla barra della selezione per tutte le linee selezionate.
 // Come per i serramenti, un muro mai compilato propone i valori dell'ultimo compilato: si conferma con un tocco.
 function wallThickMenuAction(only) {
@@ -1291,12 +1317,57 @@ const COMM_CAT = {
 // all'aperto: superficie si', volume no (l'altezza resta solo come promemoria, es. del piano sopra per gli ombreggiamenti)
 const COMM_APERTO = new Set(['balconi','terrazziLogge','terrazzoTasca','portici','corti','giardinoApp','giardinoVilla','postoScoperto']);
 function ambNoVol(a) { return COMM_APERTO.has(a.category); }
+// classi dei muri: colore a video, peso nella superficie commerciale e (con lo stato di progetto) cosa si puo' demolire.
+// Solo l'Interno e' demolibile; sugli altri si fanno tracce, tinteggiature e finiture. "Non assegnato" = tipo proposto
+// dall'app e non ancora validato (cv 'dubbio'), tratteggiato in fucsia. I valori salvati restano quelli della 2.01.
 const WALL_TYPES = [
-  {value:'',            label:'Interno (nel lordo se c\'è il contorno esterno)'},
-  {value:'perimetrale', label:'Perimetrale - verso l\'esterno (100% fino a 50 cm)'},
-  {value:'comunione',   label:'In comunione - verso altra unità o parti comuni (50%, fino a 25 cm)'},
+  {value:'',            label:'Interno - ripartizione, demolibile (blu)'},
+  {value:'perimetrale', label:'Esterno (viola) - 100% fino a 50 cm'},
+  {value:'comunione',   label:'Verso altre unità riscaldate (verde) - 50%, fino a 25 cm'},
+  {value:'nonrisc',     label:'Verso non riscaldati o vano scala (giallo) - 50%, fino a 25 cm'},
 ];
-const WALL_SHORT = {'':'Interno', perimetrale:'Perimetrale', comunione:'In comunione'};
+const WALL_SHORT = {'':'Interno', perimetrale:'Esterno', comunione:'Altre unità riscaldate', nonrisc:'Non riscaldati/vano scala'};
+function wallCom(g) { return g.commType==='comunione' || g.commType==='nonrisc'; }      // al 50% nella superficie commerciale
+function wallColor(g) {
+  if (g.cv==='dubbio') return C.wallNd;
+  return {perimetrale:C.wallExt, comunione:C.wallCom, nonrisc:C.wallNr}[g.commType] || (g.layer==='MURI_EST' ? C.wallExt : C.wall);
+}
+
+// nome dell'ambiente da elenco, sempre univoco: quelli che di solito si ripetono (ROOM_NUM) partono da "1", gli altri
+// prendono il numero solo se si ripetono (il primo senza numero diventa "1"). Il numero nuovo e' il primo libero;
+// i nomi gia' dati non si rinumerano. "Altro" = nome scritto a mano.
+const ROOM_NAMES = ['Soggiorno','Soggiorno/cucina','Cucina','Camera','Bagno','Disimpegno','Corridoio','Ripostiglio'];
+const ROOM_NUM = new Set(['Camera','Bagno','Disimpegno','Corridoio','Ripostiglio']);
+const roomRe = base => new RegExp('^'+base.replace(/[.*+?^${}()|[\]\\\/]/g, '\\$&')+'(?: ([0-9]+))?$', 'i');
+function roomBase(name) { return ROOM_NAMES.find(b => roomRe(b).test(name||'')) || ''; }
+// da chiamare dopo saveHistory: puo' rinominare in "<nome> 1" l'omonimo senza numero
+function roomName(base, self) {
+  const re = roomRe(base);
+  if (self && re.test(self.name)) return self.name;                   // tipo invariato: resta il suo nome
+  const same = state.ambienti.filter(a => a!==self && re.test(a.name));
+  if (!same.length && !ROOM_NUM.has(base)) return base;
+  const used = new Set();
+  same.forEach(a => { const m = re.exec(a.name); if (m[1]) used.add(+m[1]); else { a.name = base+' 1'; used.add(1); } });
+  let n = 1; while (used.has(n)) n++;
+  return base+' '+n;
+}
+// campi del nome nella finestra dell'ambiente: elenco + nome libero (visibile solo con "Altro")
+function roomNameFields(cur) {
+  return [
+    {label:'Nome ambiente', id:'rn', type:'select', value:roomBase(cur) || 'keep',
+      options:(roomBase(cur) ? [] : [{value:'keep', label:cur}]).concat(ROOM_NAMES.map(b => ({value:b, label:b})), [{value:'altro', label:'Altro (scrivi il nome)'}])},
+    {label:'Nome libero', id:'name', type:'text', value:cur},
+  ];
+}
+function roomNameUI() {                       // dopo askDialog: il nome libero compare solo scegliendo "Altro"
+  const sel = $id('dlg_rn'), box = $id('dlg_name').parentElement;
+  const upd = () => { box.style.display = sel.value==='altro' ? '' : 'none'; };
+  upd(); sel.addEventListener('change', () => { upd(); if (sel.value==='altro') $id('dlg_name').focus(); });
+}
+function roomNameRead(v, self, cur) {
+  if (v.rn==='altro') return v.name || cur;
+  return v.rn==='keep' ? cur : roomName(v.rn, self);
+}
 
 function hitAmbiente(sx, sy) {
   const w = s2w(sx,sy);
@@ -1319,17 +1390,18 @@ function ambMenuAction(action) {
     deleteSelection(true); return;
   }
   if (action==='edit') {
-    askDialog('Modifica '+amb.name, [
-      {label:'Nome',              id:'name', value:amb.name,          type:'text'},
+    const pw = ambWalls(amb);
+    askDialog('Modifica '+amb.name, roomNameFields(amb.name).concat([
       {label:'Altezza netta (m)', id:'h',    value:amb.h.toFixed(2),  type:'number'},
       {label:'Categoria (le voci all\'aperto non hanno volume)', id:'cat', type:'select', value:amb.category||'',
         options:[{value:'',label:'Non classificato'}].concat(Object.keys(COMM_CAT).map(k => ({value:k, label:COMM_CAT[k].label})))},
-    ], 'Superficie '+ambNet(amb).toFixed(2)+' m²', v => {
+    ]), 'Superficie '+ambNet(amb).toFixed(2)+' m²'+(pw ? ', pareti '+pw.lorde.toFixed(2)+' m² lorde, '+pw.nette.toFixed(2)+' m² nette' : ''), v => {
       const hh = parseFloat(v.h); saveHistory();
-      amb.name = v.name || amb.name; if (isFinite(hh) && hh>0) amb.h = hh;
+      amb.name = roomNameRead(v, amb, amb.name); if (isFinite(hh) && hh>0) amb.h = hh;
       amb.category = v.cat || undefined;
       commit('Ambiente aggiornato.');
     });
+    roomNameUI();
   }
 }
 
@@ -1387,8 +1459,8 @@ function drawPencil() {
 function drawSegments() {
   const style = (g, i) => {
     const selL = (state.selSeg && state.selSeg.has(i)) || isSel('segment',i);
-    ctx.strokeStyle = selL ? '#e94560' : (g.layer==='MURI_EST' ? C.wallExt : C.wall); ctx.lineWidth = selL ? 4 : prLw(2.5, g.layer==='MURI_EST' ? 0.5 : 0.35);
-    ctx.setLineDash(!PRINT && g.cv==='dubbio' ? [9,6] : []);       // muro esterno col tipo proposto dall'app, da validare
+    ctx.strokeStyle = selL ? '#e94560' : wallColor(g); ctx.lineWidth = selL ? 4 : prLw(2.5, g.layer==='MURI_EST' ? 0.5 : 0.35);
+    ctx.setLineDash(!PRINT && g.cv==='dubbio' ? [9,6] : []);       // non assegnato: tipo proposto dall'app, da validare
   };
   state.segments.forEach((g,i) => {
     const A=state.points[g.a], B=state.points[g.b]; if(!A||!B) return;
@@ -1907,12 +1979,12 @@ function finishRoom() {
   const w0 = Math.abs(r.x1-r.x0), h0 = Math.abs(r.y1-r.y0);
   if (w0 < 0.3 || h0 < 0.3) { draw(); setTip('Stanza non creata: trascina un rettangolo di almeno 30 x 30 cm.'); return; }
   const sx = r.x1 >= r.x0 ? 1 : -1, sy = r.y1 >= r.y0 ? 1 : -1;
-  askDialog('Stanza rettangolare', [
-    {label:'Nome ambiente', id:'name', value:'Ambiente '+(state.ambienti.length+1), type:'text'},
+  const nm0 = 'Ambiente '+(state.ambienti.length+1);
+  askDialog('Stanza rettangolare', roomNameFields(nm0).concat([
     {label:'Larghezza (m)', id:'w', value:w0.toFixed(2), type:'number'},
     {label:'Profondità (m)', id:'d', value:h0.toFixed(2), type:'number'},
     {label:'Altezza netta (m)', id:'h', value:lastAmbH().toFixed(2), type:'number'},
-  ], 'Misure lette dal trascinamento: correggile con quelle rilevate. L\'angolo da cui sei partito resta fermo.', v => {
+  ]), 'Misure lette dal trascinamento: correggile con quelle rilevate. L\'angolo da cui sei partito resta fermo.', v => {
     const w = parseFloat(v.w), d = parseFloat(v.d), hh = parseFloat(v.h);
     if (!(w>0) || !(d>0) || !(hh>0)) { draw(); return; }
     saveHistory();
@@ -1926,9 +1998,10 @@ function finishRoom() {
     });
     ids.forEach((id,k) => { const nx = ids[(k+1)%4]; if (!segExists(id, nx)) state.segments.push({a:id, b:nx}); });
     const n = state.ambienti.length;
-    state.ambienti.push({ indices:ids, name:v.name || 'Ambiente '+(n+1), h:hh, color:AMB_COLORS[n%AMB_COLORS.length], category:'utile' });
+    state.ambienti.push({ indices:ids, name:roomNameRead(v, null, nm0), h:hh, color:AMB_COLORS[n%AMB_COLORS.length], category:'utile' });
     commit('Stanza creata: '+(w*d).toFixed(2)+' m². Trascina per la prossima, oppure Seleziona per finire.', true);
   }, () => draw());
+  roomNameUI();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1985,6 +2058,38 @@ function openingGlass(op) {
   const n = e.vetri || 1, a = glassAuto(op.width, opHb(op), n) || {};
   const L = e.vetroL || a.L, H = e.vetroH || a.H;
   return L && H ? {n, L, H, auto: !e.vetroL && !e.vetroH} : null;
+}
+// schema del serramento (beta) nella finestra Dati energetici, sopra i campi che lo cambiano: bucatura in proporzione, telaio, specchiature
+// affiancate con i montanti come dicono i numeri (scritti o calcolati), pannelli ciechi nello spazio che resta a destra.
+// Si aggiorna mentre si scrive e avvisa se le specchiature non tornano con la bucatura.
+function opSketch(op) {
+  const box = document.createElement('div');
+  box.style.cssText = 'margin-bottom:12px;text-align:center;font-size:12px';
+  $id('dlg_vetri').parentElement.before(box);
+  const num = id => { const el = $id('dlg_'+id); return parseFloat(String(el.value.trim() || el.dataset.def || '').replace(',', '.')); };
+  const cm = v => Math.round(Math.abs(v)*100)+' cm', m2 = v => v.toFixed(2).replace('.', ',');
+  const upd = () => {
+    const L = op.width, H = opHb(op), n = Math.max(1, Math.round(num('vetri')) || 1), p = Math.max(0, Math.round(num('pannelli')) || 0);
+    const a = glassAuto(L, H, n) || {L:0, H:0};
+    const gL = num('vetroL') > 0 ? num('vetroL') : a.L, gH = num('vetroH') > 0 ? num('vetroH') : a.H;
+    const S = Math.min(240/L, 150/H), r = (x, y, w, h, fill, stroke) =>
+      '<rect x="'+(x*S).toFixed(1)+'" y="'+(y*S).toFixed(1)+'" width="'+Math.max(0, w*S).toFixed(1)+'" height="'+Math.max(0, h*S).toFixed(1)+'" fill="'+fill+'" stroke="'+stroke+'" stroke-width="1"/>';
+    let svg = r(0, 0, L, H, '#5a6478', '#ccc');
+    for (let k=0; k<n; k++) svg += r(TELAIO_M + k*(gL+MONTANTE_M), TELAIO_M, gL, gH, 'rgba(0,229,255,0.35)', '#00e5ff');
+    const rest = L - 2*TELAIO_M - n*gL - n*MONTANTE_M, pw = p ? (rest - (p-1)*MONTANTE_M)/p : 0;   // spazio a destra per i pannelli
+    if (p && pw > 0.02) for (let k=0; k<p; k++) svg += r(TELAIO_M + n*(gL+MONTANTE_M) + k*(pw+MONTANTE_M), TELAIO_M, pw, H-2*TELAIO_M, '#9aa0aa', '#ddd');
+    const overW = 2*TELAIO_M + n*gL + (n-1)*MONTANTE_M - L, overH = gH + 2*TELAIO_M - H, free = -overW;
+    const msg = overW > 0.005 ? ['#ff6b6b', 'Le specchiature superano la larghezza della bucatura di '+cm(overW)]
+      : overH > 0.005 ? ['#ff6b6b', 'La specchiatura supera l\'altezza della bucatura di '+cm(overH)]
+      : p && pw <= 0.02 ? ['#ffb35c', 'Pannelli: con queste specchiature non resta spazio, scrivi la larghezza della specchiatura']
+      : !p && free > 0.05 ? ['#ffb35c', 'Restano '+cm(free)+' di larghezza senza vetro: telaio più largo o un pannello?']
+      : ['#5ef38c', 'Specchiature coerenti con la bucatura'];
+    box.innerHTML = '<div style="color:#aaa;margin-bottom:4px">Schema (beta) - bucatura '+m2(L)+' x '+m2(H)+' m, specchiatura '+m2(gL)+' x '+m2(gH)+' m'+(n>1 ? ' (x'+n+')' : '')+'</div>'+
+      '<svg width="'+Math.ceil(L*S+2)+'" height="'+Math.ceil(H*S+2)+'" viewBox="-1 -1 '+Math.ceil(L*S+2)+' '+Math.ceil(H*S+2)+'" style="overflow:visible">'+svg+'</svg>'+
+      '<div style="color:'+msg[0]+';margin-top:4px">'+msg[1]+'</div>';
+  };
+  upd();
+  ['vetri','pannelli','vetroL','vetroH'].forEach(id => $id('dlg_'+id).addEventListener('input', upd));
 }
 // superficie di bucatura, vetrata e telaio per differenza
 function openingAreas(op) {
@@ -2144,6 +2249,7 @@ function openingMenuAction(action) {
       });
     };
     upd(); fv.addEventListener('input', upd);
+    opSketch(op);
     return;
   }
   if (action==='edit') {
@@ -2276,18 +2382,19 @@ function checkClosedPolygon(lastIdx) {
   const area = Math.abs(shoelace(cycle.map(i=>state.points[i])));
   if (area < 0.05) return;
 
-  askDialog('Ambiente rilevato', [
-    {label:'Nome ambiente',    id:'name', value:'Ambiente '+(state.ambienti.length+1), type:'text'},
+  const nm0 = 'Ambiente '+(state.ambienti.length+1);
+  askDialog('Ambiente rilevato', roomNameFields(nm0).concat([
     {label:'Altezza netta (m)',id:'h',    value:lastAmbH().toFixed(2), type:'number'},
-  ], 'Superficie calcolata: '+area.toFixed(2)+' m²', v => {
+  ]), 'Superficie calcolata: '+area.toFixed(2)+' m²', v => {
     const h = parseFloat(v.h); if (!isFinite(h)||h<=0) return;
     saveHistory();                                   // passo di annulla suo: il primo ↩ toglie l'ambiente, non anche l'ultimo muro
     state.ambienti.push({
-      indices: cycle, name: v.name || 'Ambiente '+(state.ambienti.length+1),
+      indices: cycle, name: roomNameRead(v, null, nm0),
       h, color: AMB_COLORS[state.ambienti.length%AMB_COLORS.length], category:'utile'    // nasce interno: si cambia solo balcone, cantina, box...
     });
     commit('Ambiente registrato: '+area.toFixed(2)+' m², '+(area*h).toFixed(2)+' m³.');
   });
+  roomNameUI();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -3535,49 +3642,45 @@ function jfifDpi(b, dpi) {
     b[13]=1; b[14]=dpi>>8; b[15]=dpi&255; b[16]=dpi>>8; b[17]=dpi&255;
   }
 }
-// PDF a una pagina con il JPEG a pagina intera, senza librerie
-function makePdf(jpg, wpx, hpx, wpt, hpt) {
+// PDF A4 senza librerie: una pagina per ogni JPEG {jpg, wpx, hpx}, a pagina intera, orizzontale se piu' largo che alto
+function makePdf(pages) {
   const enc = t => new TextEncoder().encode(t), parts = [], offs = [];
   let off = 0;
   const push = b => { parts.push(b); off += b.length; };
   const obj = (n, body) => { offs[n] = off; push(enc(n+' 0 obj\n'+body+'\nendobj\n')); };
   push(enc('%PDF-1.4\n'));
   obj(1, '<< /Type /Catalog /Pages 2 0 R >>');
-  obj(2, '<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
-  obj(3, '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+wpt.toFixed(2)+' '+hpt.toFixed(2)+'] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>');
-  offs[4] = off;
-  push(enc('4 0 obj\n<< /Type /XObject /Subtype /Image /Width '+wpx+' /Height '+hpx+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+jpg.length+' >>\nstream\n'));
-  push(jpg);
-  push(enc('\nendstream\nendobj\n'));
-  const cs = 'q '+wpt.toFixed(2)+' 0 0 '+hpt.toFixed(2)+' 0 0 cm /Im0 Do Q';
-  obj(5, '<< /Length '+cs.length+' >>\nstream\n'+cs+'\nendstream');
-  const xref = off;
-  let x = 'xref\n0 6\n0000000000 65535 f \n';
-  for (let i=1; i<=5; i++) x += String(offs[i]).padStart(10,'0')+' 00000 n \n';
-  push(enc(x+'trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF'));
+  obj(2, '<< /Type /Pages /Kids ['+pages.map((_,k) => (3+3*k)+' 0 R').join(' ')+'] /Count '+pages.length+' >>');
+  pages.forEach((p,k) => {                                 // per pagina: oggetti pagina, immagine, contenuto
+    const n = 3+3*k, land = p.wpx > p.hpx, wpt = (land ? 841.89 : 595.28).toFixed(2), hpt = (land ? 595.28 : 841.89).toFixed(2);
+    obj(n, '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+wpt+' '+hpt+'] /Resources << /XObject << /Im0 '+(n+1)+' 0 R >> >> /Contents '+(n+2)+' 0 R >>');
+    offs[n+1] = off;
+    push(enc((n+1)+' 0 obj\n<< /Type /XObject /Subtype /Image /Width '+p.wpx+' /Height '+p.hpx+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+p.jpg.length+' >>\nstream\n'));
+    push(p.jpg);
+    push(enc('\nendstream\nendobj\n'));
+    const cs = 'q '+wpt+' 0 0 '+hpt+' 0 0 cm /Im0 Do Q';
+    obj(n+2, '<< /Length '+cs.length+' >>\nstream\n'+cs+'\nendstream');
+  });
+  const xref = off, size = 3+3*pages.length;
+  let x = 'xref\n0 '+size+'\n0000000000 65535 f \n';
+  for (let i=1; i<size; i++) x += String(offs[i]).padStart(10,'0')+' 00000 n \n';
+  push(enc(x+'trailer\n<< /Size '+size+' /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF'));
   return new Blob(parts, {type:'application/pdf'});
 }
+// kind: 'jpg' | 'pdf' | 'full' (PDF col disegno e dietro le tabelle scelte in E.tables)
 function expGo() {
   const E = state.exp; if (!E) return;
   const den = expDen(E), o = expFit(E, den); if (!o) return;
   const kind = E.kind, cv = renderExport(E, den, o);
   expCancel();
   const base = stamp()+'_rilievo_1-'+den;
-  cv.toBlob(blob => {
-    if (!blob) { setTip('Export non riuscito: provo con una zona più piccola.'); return; }
-    blob.arrayBuffer().then(buf => {
-      const bytes = new Uint8Array(buf);
-      jfifDpi(bytes, 300);
-      if (kind==='jpg') {
-        download(base+'.jpg', new Blob([bytes], {type:'image/jpeg'}), 'image/jpeg');
-        setTip('JPG A4 in scala 1:'+den+' (300 dpi).');
-      } else {
-        const wpt = o==='land' ? 841.89 : 595.28, hpt = o==='land' ? 595.28 : 841.89;
-        download(base+'.pdf', makePdf(bytes, cv.width, cv.height, wpt, hpt), 'application/pdf');
-        setTip('PDF A4 in scala 1:'+den+'.');
-      }
-    });
-  }, 'image/jpeg', 0.92);
+  Promise.all([cv].concat(tablePages(E.tables || [])).map(canvasJpg)).then(([plan, ...tabs]) => {
+    if (!plan) { setTip('Export non riuscito: prova con una zona più piccola.'); return; }
+    if (kind==='jpg') { download(base+'.jpg', plan.jpg, 'image/jpeg'); setTip('JPG A4 in scala 1:'+den+' (300 dpi).'); return; }
+    tabs = tabs.filter(Boolean);
+    download(base+(kind==='full' ? '_completo' : '')+'.pdf', makePdf([plan].concat(tabs)), 'application/pdf');
+    setTip('PDF A4 in scala 1:'+den+(tabs.length ? ', più '+tabs.length+(tabs.length===1 ? ' pagina' : ' pagine')+' di tabelle.' : '.'));
+  });
 }
 
 
@@ -3746,14 +3849,14 @@ function exportDXF() {
 }
 
 // elenco serramenti in CSV (apribile in Excel): dimensioni sempre presenti, dati energetici solo dove compilati
+const OP_TXT = {
+  tipo:{F:'Finestra', PF:'Porta-finestra', P:'Porta'}, vetro:{S:'Singolo', D:'Doppio', T:'Triplo'},
+  telaio:{All:'Alluminio', PVC:'PVC', Leg:'Legno'}, osc:{pers:'Persiana', avv:'Avvolgibile', scuri:'Scuri', no:'Nessuno'}, si:{si:'Sì', no:'No'},
+};
 function exportOpeningsCSV() {
   hideAllMenus();
   if (!state.openings.length) { setTip('Nessun serramento da esportare.'); return; }
-  const TIPO = {F:'Finestra', PF:'Porta-finestra', P:'Porta'};
-  const VETRO = {S:'Singolo', D:'Doppio', T:'Triplo'};
-  const TELAIO = {All:'Alluminio', PVC:'PVC', Leg:'Legno'};
-  const OSC = {pers:'Persiana', avv:'Avvolgibile', scuri:'Scuri', no:'Nessuno'};
-  const SI = {si:'Sì', no:'No'};
+  const {tipo:TIPO, vetro:VETRO, telaio:TELAIO, osc:OSC, si:SI} = OP_TXT;
   const head = ['Label','Tipo','Larghezza foro (m)','Altezza foro (m)','Altezza sottofinestra (m)','Profondità nicchia (m)',
     'Vetro','Spessore vetro (mm)','Distanziatore','Cassonetto','Cassonetto isolato','Cassonetto H (cm)','Cassonetto Prof (cm)',
     'Telaio','Spessore telaio (mm)','Oscurante','Vetri (numero)','Pannelli (numero)','Larghezza specchiatura (m)','Altezza specchiatura (m)',
@@ -3783,12 +3886,12 @@ function downloadCSV(name, rows) {
   download(name, '﻿'+csv, 'text/csv');
 }
 
-// superficie commerciale in CSV, con i coefficienti Tecnoborsa gia' applicati (vedi COMM_CAT):
-// un totale per categoria (scaglione oltre i 25 mq compreso), piu' i muri classificati e il promemoria delle parti condominiali
-function exportSuperficieCommerciale() {
-  hideAllMenus();
+// superficie commerciale, con i coefficienti Tecnoborsa gia' applicati (vedi COMM_CAT): un totale per categoria
+// (scaglione oltre i 25 mq compreso), piu' i muri classificati e il promemoria delle parti condominiali.
+// Righe con intestazione, per il CSV e per la tabella in pagina; null se nulla e' classificato.
+function commTable() {
   const classificato = state.ambienti.some(a => a.category) || state.segments.some(s => s.commType);
-  if (!classificato) { setTip('Niente da esportare: classifica almeno un ambiente o un muro (Categoria / Spessore e tipo).'); return; }
+  if (!classificato) return null;
 
   const tot = {};
   state.ambienti.forEach(a => { if (!a.category) return; tot[a.category] = (tot[a.category]||0) + ambNet(a); });
@@ -3806,7 +3909,7 @@ function exportSuperficieCommerciale() {
       aCont += Math.abs(shoelace(r.pts));
       r.segs.forEach(k => {
         const g = state.segments[k], t = g.thick || 0, len = segLen(g);
-        if (g.commType==='comunione') corr += len * (t - Math.min(t*0.5, 0.25));
+        if (wallCom(g)) corr += len * (t - Math.min(t*0.5, 0.25));
         else if (t > 0.5) corr += len * (t - 0.5);
       });
     });
@@ -3820,7 +3923,7 @@ function exportSuperficieCommerciale() {
       if (!g.commType || !g.thick) return;
       const len = segLen(g);
       if (g.commType==='perimetrale') muriPerim += len * Math.min(g.thick, 0.50);
-      if (g.commType==='comunione')   muriCom   += len * Math.min(g.thick*0.5, 0.25);    // meta' spessore, al massimo 25 cm
+      if (wallCom(g))                 muriCom   += len * Math.min(g.thick*0.5, 0.25);    // meta' spessore, al massimo 25 cm
     });
   }
   const nDubbi = state.segments.filter(g => g.cv==='dubbio').length;
@@ -3839,19 +3942,153 @@ function exportSuperficieCommerciale() {
     totComm += mq;
   });
   if (muriLordo!==null) {
-    rows.push(['Muri (lordo dal contorno esterno)', 1, '', muriLordo.toFixed(2), 'interni e perimetrali al 100% fino a 50 cm, in comunione al 50% fino a 25 cm, pilastri compresi']);
+    rows.push(['Muri (lordo dal contorno esterno)', 1, '', muriLordo.toFixed(2), 'interni ed esterni al 100% fino a 50 cm, verso altre unità o vano scala al 50% fino a 25 cm, pilastri compresi']);
     totComm += muriLordo;
   } else {
-    if (muriPerim>0) { rows.push(['Muri perimetrali', 1, '', muriPerim.toFixed(2), 'spessore fino a 50 cm, 100%']); totComm += muriPerim; }
-    if (muriCom>0)   { rows.push(['Muri in comunione', 0.5, '', muriCom.toFixed(2), '50% dello spessore, fino a 25 cm']); totComm += muriCom; }
+    if (muriPerim>0) { rows.push(['Muri esterni', 1, '', muriPerim.toFixed(2), 'spessore fino a 50 cm, 100%']); totComm += muriPerim; }
+    if (muriCom>0)   { rows.push(['Muri verso altre unità o vano scala', 0.5, '', muriCom.toFixed(2), '50% dello spessore, fino a 25 cm']); totComm += muriCom; }
     rows.push(['Muri interni', '', '', '', 'non compresi: manca il contorno esterno (si crea con Ricalca ambienti)']);
   }
-  if (nDubbi) rows.push(['Attenzione', '', '', '', nDubbi+' muri esterni col tipo proposto dall\'app, non ancora validati']);
+  if (nDubbi) rows.push(['Attenzione', '', '', '', nDubbi+' muri non assegnati: tipo proposto dall\'app, non ancora validato']);
   rows.push(['Parti condominiali', '', '', '', 'quota millesimale: da inserire a mano, non calcolabile dal rilievo']);
   rows.push(['Totale mq commerciali', '', '', totComm.toFixed(2), '']);
+  return {rows, totComm, muriLordo, nDubbi};
+}
+function exportSuperficieCommerciale() {
+  hideAllMenus();
+  const d = commTable();
+  if (!d) { setTip('Niente da esportare: classifica almeno un ambiente o un muro (Categoria / Spessore e tipo).'); return; }
+  const {rows, totComm, muriLordo, nDubbi} = d;
   downloadCSV(stamp()+'_superficie_commerciale.csv', rows);
   setTip('Superficie commerciale esportata (CSV): '+totComm.toFixed(2)+' mq commerciali'+(muriLordo!==null ? ', al lordo dei muri' : ', muri interni esclusi (manca il contorno esterno)')+
-         (nDubbi ? '. Attenzione: '+nDubbi+' muri esterni da validare.' : '.'));
+         (nDubbi ? '. Attenzione: '+nDubbi+' muri non assegnati.' : '.'));
+}
+
+// ═══════════════════════════════════════════════════════════
+//  TABELLE IN PAGINA (JPG/PDF): A4 orizzontale a 300 dpi, ogni tabella parte su una pagina nuova e continua
+//  sulle seguenti. Compaiono solo le tabelle che il rilievo ha (data() null = tabella assente).
+// ═══════════════════════════════════════════════════════════
+const TABLES = [
+  {id:'amb',  title:'Ambienti',               data:ambTable},
+  {id:'serr', title:'Serramenti',             data:openingsTable},
+  {id:'comm', title:'Superficie commerciale', data:() => { const d = commTable(); return d && {head:d.rows[0], rows:d.rows.slice(1)}; }},
+];
+function ambTable() {
+  if (!state.ambienti.length) return null;
+  const cuts = wallCuts(), f = v => v.toFixed(2), T = {area:0, vol:0, lorde:0, ap:0, nette:0};
+  const rows = state.ambienti.map(a => {
+    const net = ambNet(a), pw = ambWalls(a, cuts), vol = ambNoVol(a) ? null : net*a.h;
+    T.area += net; if (vol!=null) T.vol += vol;
+    if (pw) { T.lorde += pw.lorde; T.ap += pw.ap; T.nette += pw.nette; }
+    return [a.name, a.category ? COMM_CAT[a.category].label : '', f(net), f(a.h), vol!=null ? f(vol) : '-',
+            pw ? f(pw.per) : '-', pw ? f(pw.lorde) : '-', pw ? f(pw.ap)+(pw.n ? ' ('+pw.n+')' : '') : '-', pw ? f(pw.nette) : '-'];
+  });
+  rows.push(['Totale', '', f(T.area), '', f(T.vol), '', f(T.lorde), f(T.ap), f(T.nette)]);
+  return {head:['Ambiente','Categoria','Superficie (m²)','Altezza (m)','Volume (m³)','Perimetro (m)','Pareti lorde (m²)','Aperture (m²)','Pareti nette (m²)'], rows};
+}
+function openingsTable() {
+  if (!state.openings.length) return null;
+  const f = v => v.toFixed(2), T = {buc:0, vetr:0};
+  const rows = state.openings.map(op => {
+    const e = op.energy || {}, ar = openingAreas(op);
+    T.buc += ar.bucatura; T.vetr += ar.vetrata || 0;
+    return [op.label, OP_TXT.tipo[op.type]||op.type, f(op.width), f(opHb(op)), op.type==='F' && op.h0 ? f(+op.h0) : '',
+            OP_TXT.vetro[e.vetro]||'', OP_TXT.telaio[e.telaio]||'', OP_TXT.osc[e.oscurante]||'', e.cass ? OP_TXT.si[e.cass] : '',
+            e.vetri ?? '', e.pannelli || '', f(ar.bucatura), ar.vetrata!=null ? f(ar.vetrata) : '', ar.telaio!=null ? f(ar.telaio) : '', e.note || ''];
+  });
+  rows.push(['Totale', '', '', '', '', '', '', '', '', '', '', f(T.buc), T.vetr ? f(T.vetr) : '', '', '']);
+  return {head:['Serramento','Tipo','Larghezza (m)','Altezza (m)','Davanzale (m)','Vetro','Telaio','Oscurante','Cassonetto','Vetri','Pannelli','Bucatura (m²)','Vetrata (m²)','Telaio (m²)','Note'], rows};
+}
+// pagine (canvas) delle tabelle scelte, numerate in fondo
+function tablePages(ids) {
+  const mm = 300/25.4, pw = Math.round(297*mm), ph = Math.round(210*mm), M = Math.round(12*mm), pad = Math.round(1.5*mm);
+  const rowH = Math.round(6.5*mm), headH = Math.round(11*mm), top = M + Math.round(12*mm), avail = pw - 2*M;
+  const font = (pt, b) => (b ? 'bold ' : '')+Math.round(pt*300/72)+'px Segoe UI';
+  const txt = v => { const s = v==null ? '' : String(v); return /^-?\d+\.\d+( \(\d+\))?$/.test(s) ? s.replace('.', ',') : s; };   // decimali con la virgola
+  const isNum = s => /^-?[\d.,]+( \(\d+\))?$/.test(s);
+  const fit = (c, s, w) => { if (c.measureText(s).width <= w) return s; while (s && c.measureText(s+'…').width > w) s = s.slice(0,-1); return s+'…'; };
+  const day = new Date().toLocaleDateString('it-IT'), pages = [];
+  TABLES.filter(t => ids.includes(t.id)).forEach(t => {
+    const d = t.data(); if (!d) return;
+    const head = d.head.map(txt), rows = d.rows.map(r => r.map(txt));
+    const meas = document.createElement('canvas').getContext('2d');
+    // larghezze: il testo piu' lungo della colonna (intestazione a parole, va su due righe); se non entrano si accorciano le piu' larghe
+    const ws = head.map((h,j) => {
+      meas.font = font(9, true); let w = Math.max(...h.split(' ').map(p => meas.measureText(p).width));
+      meas.font = font(9, false); rows.forEach(r => { w = Math.max(w, meas.measureText(r[j]).width); });
+      return w + 2*pad;
+    });
+    const sorted = [...ws].sort((a,b) => a-b);
+    let cap = Infinity, acc = 0;
+    for (let k=0; k<sorted.length; k++) { const c = (avail-acc)/(sorted.length-k); if (sorted[k] > c) { cap = c; break; } acc += sorted[k]; }
+    let W = ws.map(w => Math.min(w, cap)); const sc = avail / W.reduce((a,b) => a+b, 0); W = W.map(w => w*sc);
+    const per = Math.max(1, Math.floor((ph - top - headH - M) / rowH));
+    for (let r0 = 0; r0 < rows.length; r0 += per) {
+      const cv = document.createElement('canvas'); cv.width = pw; cv.height = ph;
+      const c = cv.getContext('2d'); c.fillStyle = '#fff'; c.fillRect(0, 0, pw, ph); c.textBaseline = 'middle';
+      c.fillStyle = '#000'; c.font = font(14, true); c.fillText('Rilievo - '+t.title+(r0 ? ' (segue)' : ''), M, M + Math.round(4*mm));
+      c.font = font(9, false); c.textAlign = 'right'; c.fillText(day, pw - M, M + Math.round(4*mm)); c.textAlign = 'left';
+      c.fillStyle = '#e4e8ee'; c.fillRect(M, top, avail, headH);
+      let x = M; c.fillStyle = '#000'; c.font = font(9, true);
+      head.forEach((h,j) => {                                // intestazione: al massimo due righe
+        const words = h.split(' '), l1 = []; let i = 0;
+        while (i < words.length && c.measureText(l1.concat(words[i]).join(' ')).width <= W[j]-2*pad) l1.push(words[i++]);
+        if (!l1.length) l1.push(words[i++]);
+        const l2 = words.slice(i).join(' ');
+        c.fillText(fit(c, l1.join(' '), W[j]-2*pad), x+pad, top + headH/2 - (l2 ? rowH*0.3 : 0));
+        if (l2) c.fillText(fit(c, l2, W[j]-2*pad), x+pad, top + headH/2 + rowH*0.3);
+        x += W[j];
+      });
+      const part = rows.slice(r0, r0+per);
+      part.forEach((r,i) => {
+        const y = top + headH + i*rowH, tot = /^Totale/.test(r[0]);
+        if (i%2) { c.fillStyle = '#f5f7fa'; c.fillRect(M, y, avail, rowH); }
+        if (tot) { c.strokeStyle = '#000'; c.lineWidth = 3; c.beginPath(); c.moveTo(M, y); c.lineTo(M+avail, y); c.stroke(); }
+        c.fillStyle = '#000'; c.font = font(9, tot); x = M;
+        r.forEach((s,j) => {
+          const num = isNum(s);
+          c.textAlign = num ? 'right' : 'left'; c.fillText(fit(c, s, W[j]-2*pad), num ? x+W[j]-pad : x+pad, y + rowH/2); x += W[j];
+        });
+        c.textAlign = 'left';
+      });
+      c.strokeStyle = '#9aa3ad'; c.lineWidth = 2; c.strokeRect(M, top, avail, headH + part.length*rowH);
+      pages.push(cv);
+    }
+  });
+  pages.forEach((cv,i) => {
+    const c = cv.getContext('2d'); c.fillStyle = '#555'; c.font = font(8, false); c.textAlign = 'right'; c.textBaseline = 'middle';
+    c.fillText('Pagina '+(i+1)+' di '+pages.length, pw - M, ph - M/2);
+  });
+  return pages;
+}
+// canvas -> JPEG a 300 dpi {jpg, wpx, hpx}; null se il browser non ce la fa
+function canvasJpg(cv) {
+  return new Promise(res => cv.toBlob(b => {
+    if (!b) { res(null); return; }
+    b.arrayBuffer().then(buf => { const jpg = new Uint8Array(buf); jfifDpi(jpg, 300); res({jpg, wpx:cv.width, hpx:cv.height}); });
+  }, 'image/jpeg', 0.92));
+}
+// menu File: "tab" = solo tabelle (PDF o JPG), "full" = PDF unico con il disegno in scala e dietro le tabelle
+function exportTablesMenu(mode) {
+  hideAllMenus();
+  const av = TABLES.filter(t => t.data());
+  if (mode==='tab' && !av.length) { setTip('Nessuna tabella da esportare: servono ambienti, serramenti o muri e ambienti classificati.'); return; }
+  const fields = av.map(t => ({label:t.title, id:'t_'+t.id, type:'check', value:'1'}));
+  if (mode==='tab') fields.push({label:'Formato', id:'fmt', type:'select', value:'pdf',
+    options:[{value:'pdf', label:'PDF - un file con tutte le pagine'}, {value:'jpg', label:'JPG - un\'immagine per pagina'}]});
+  askDialog(mode==='tab' ? 'Esporta tabelle' : 'Esporta rilievo completo', fields,
+    mode==='tab' ? 'Ci sono solo le tabelle che il rilievo ha: togli la spunta a quelle da non esportare.'
+                 : 'Un solo PDF: il disegno in scala, poi le tabelle spuntate. Dopo OK scegli zona e scala del disegno.', v => {
+    const ids = av.filter(t => v['t_'+t.id]).map(t => t.id);
+    if (mode==='full') { startExport('full'); if (state.exp) state.exp.tables = ids; return; }
+    if (!ids.length) { setTip('Nessuna tabella spuntata.'); return; }
+    Promise.all(tablePages(ids).map(canvasJpg)).then(pp => {
+      pp = pp.filter(Boolean);
+      if (v.fmt==='jpg') pp.forEach((p,k) => download(stamp()+'_tabelle_'+String(k+1).padStart(2,'0')+'.jpg', p.jpg, 'image/jpeg'));
+      else download(stamp()+'_tabelle.pdf', makePdf(pp), 'application/pdf');
+      setTip('Tabelle esportate: '+pp.length+(pp.length===1 ? ' pagina' : ' pagine')+' A4.');
+    });
+  });
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -3874,6 +4111,13 @@ function askDialog(title, fields, hint, onOk, onCancel) {
 
     let el;
     if (f.type==='textarea') { el = document.createElement('textarea'); el.rows=3; el.value = f.value||''; }
+    else if (f.type==='check') {                         // casella: la riga intera si tocca, valore '1' o ''
+      el = document.createElement('input'); el.type = 'checkbox'; el.checked = !!f.value;
+      el.style.cssText = 'width:22px;height:22px;margin:0 10px 0 0;flex:none';
+      div.style.cssText = 'display:flex;align-items:center;cursor:pointer';
+      lab.style.cssText = 'margin:0;font-size:15px;color:#eee;order:1;cursor:pointer';
+      lab.htmlFor = 'dlg_'+f.id;
+    }
     else if (f.type==='select') {
       el = document.createElement('select');
       (f.options||[]).forEach(o => {
@@ -3906,7 +4150,7 @@ function readDialog() {
   const v = {};
   (_dlgFields||[]).forEach(f => {
     const el = document.getElementById('dlg_'+f.id);
-    let val = el ? String(el.value).trim() : '';
+    let val = !el ? '' : el.type==='checkbox' ? (el.checked ? '1' : '') : String(el.value).trim();
     if (val==='' && el && el.dataset.def!==undefined) val = el.dataset.def;     // non scritto nulla: vale il predefinito
     v[f.id] = val.replace(',', '.');
   });
@@ -4912,11 +5156,11 @@ function wallsApply() {
     const n = state.ambienti.length;
     state.ambienti.push({ indices:idx, name:'Ambiente '+(n+1), h, color:AMB_COLORS[n%AMB_COLORS.length], category:'utile' });   // il ricalco scarta gia' i balconi
   });
-  // muri esterni: spessore letto dal disegno muro per muro, tipo proposto (Perimetrale o In comunione) da validare
+  // muri esterni: spessore letto dal disegno muro per muro, tipo proposto (WALL_TYPES) da validare
   classifyExtWalls(state.segments.map((_,k) => k).filter(k => k >= s0), P.wallT);
   const nR = (P.rooms||[]).length, nd = state.segments.filter(g => g.cv==='dubbio').length;
   state.wallsPrev = null; state.moveBase = false; $id('walls-panel').classList.remove('show'); $id('base-panel').classList.remove('show');   // piu' spazio per lavorare; si riapre da File
-  commit('Aggiunti '+nR+' ambienti ('+P.segs.length+' linee). Muri esterni tratteggiati = tipo proposto da validare ('+nd+'): inserendo le finestre si decidono da soli.');
+  commit('Aggiunti '+nR+' ambienti ('+P.segs.length+' linee). Muri fucsia tratteggiati = non assegnati, tipo proposto da validare ('+nd+'): inserendo le finestre si decidono da soli.');
 }
 
 // salvataggio della base dentro il progetto .json
@@ -4996,8 +5240,8 @@ else { flagSaved('nuovo rilievo'); draw(); }
 //  WEBAPP INSTALLABILE (solo se servita da internet, non da file locale)
 // ═══════════════════════════════════════════════════════════
 // versione e novita' vengono scritte da pubblica_app.py leggendo la prima voce di CHANGELOG.md
-const APP_VERSION = '2.01';
-const APP_NOTE = ["Selezione multipla: Shift+clic sul PC; dal menu di un muro, punto o serramento \"Selezione multipla\", poi ogni tocco aggiunge o toglie. Le azioni (Spessore, Sposta, Elimina) stanno in una barra vicino alla selezione, che non copre mai il dito", "Valori in sequenza: spessore e tipo del muro, altezza dell'ambiente, pedata e alzata della scala, misura del pilastro ripartono dall'ultimo compilato: si conferma con un tocco", "Dati energetici: la specchiatura si calcola dalla bucatura (telaio 9 cm per lato, montante 9 cm tra le specchiature affiancate); resta modificabile, 0 torna al calcolo", "Finestre, porte e porte-finestre aprono il varco nel muro: la linea si interrompe, anche quella esterna, e due spalle chiudono lo spessore. A video, in PDF/JPG e nel DXF", "Etichetta dell'ambiente portata fuori: una linea di richiamo la collega all'ambiente, in qualsiasi direzione (anche nel DXF)", "Esportazione PDF/JPG: quote, nomi dei serramenti e testi degli ambienti non si sovrappongono più tra loro né alle linee; quelli spostati hanno la linea di richiamo", "Nuovo strumento \"Stanza rettangolare\" (Disegna): trascini un rettangolo e nascono 4 muri e l'ambiente", "Ricalco: i muri esterni hanno lo spessore letto muro per muro e il tipo proposto (Perimetrale o In comunione), tratteggiati finché non li validi. Una finestra li fa Perimetrali, la porta d'ingresso In comunione. Contatore \"Muri da validare\" nella barra in basso", "Superficie commerciale al lordo dal contorno esterno: muri interni, perimetrali e pilastri compresi, muri in comunione al 50%", "Toccando vicino a due linee si prende la più vicina al dito"];
+const APP_VERSION = '2.02';
+const APP_NOTE = ["Nome dell'ambiente da elenco (Soggiorno, Cucina, Camera, Bagno...): Camera, Bagno, Disimpegno, Corridoio e Ripostiglio partono da 1, gli altri prendono il numero solo se si ripetono. \"Altro\" per scriverlo a mano", "Muri in quattro classi, ognuna col suo colore: Interno (blu), Esterno (viola), Verso altre unità riscaldate (verde), Verso non riscaldati o vano scala (giallo). Fucsia tratteggiato = non assegnato, contato nella barra in basso. La porta d'ingresso propone \"vano scala\"", "Pareti di ogni ambiente: lorde (vuoto per pieno) e nette, cioè meno finestre e porte. Una porta tra due stanze si toglie da entrambe", "Nuovi export \"Tabelle\" (PDF o JPG) e \"Rilievo completo\" (un solo PDF con il disegno in scala e le tabelle): si spuntano le tabelle che servono tra quelle presenti (ambienti, serramenti, superficie commerciale)", "Dati energetici: schema del serramento (beta) che si aggiorna mentre scrivi e avvisa se le specchiature non tornano con la bucatura"];
 const IS_LOCAL = APP_VERSION.startsWith('__');
 document.getElementById('menu-version').textContent = IS_LOCAL ? 'Versione locale' : 'ℹ Versione '+APP_VERSION+' - novità';
 function showNews(title) {
