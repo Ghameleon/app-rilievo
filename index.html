@@ -69,8 +69,8 @@
     .menu-item { padding:10px 16px; font-size:14px; cursor:pointer; border-bottom:1px solid #0f3460; }
     .menu-item:last-child { border-bottom:none; }
     .menu-item:hover { background:#0f3460; }
-    .menu-item.alt { background:#1b2a50; }
-    .menu-item:hover { background:#0f3460; }
+    .menu-item.alt { background:rgba(187,112,40,.30); }
+    .menu-item:hover, .menu-item.alt:hover { background:#0f3460; }
 
     #dialog-overlay {
       position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:300;
@@ -121,8 +121,8 @@
     .pick-list { margin-top:4px; border:1px solid #1a5a9a; border-radius:6px; overflow:hidden; display:none; }
     .pick-list.open { display:block; }
     .pick-list div { padding:9px 12px; font-size:14px; color:#eee; cursor:pointer; display:flex; justify-content:space-between; gap:8px; }
-    .pick-list div.alt { background:#1b2a50; }
-    .pick-list div:hover { background:#0f3460; }
+    .pick-list div.alt { background:rgba(187,112,40,.30); }
+    .pick-list div:hover, .pick-list div.alt:hover { background:#0f3460; }
     .pick-list div.cur { color:#ffe066; font-weight:bold; }
     .pick-list div.grp:after { content:'›'; color:#9fb3d1; }
     .pick-list div.back { color:#9fb3d1; font-size:12px; border-bottom:1px solid #0f3460; }
@@ -235,7 +235,12 @@
   <div class="menu-item tool-item" id="ti-point" onclick="pickTool('point')"><span class="ti">+</span><span class="tt"><b>Punto</b><small>Aggiunge un punto libero</small></span></div>
   <div class="menu-item tool-item" id="ti-roompts" onclick="pickTool('roompts')"><span class="ti">⬠</span><span class="tt"><b>Ambiente da punti</b><small>Tocca i vertici in ordine: nel Progetto, per le stanze unite</small></span></div>
   <div class="menu-item tool-item" id="ti-boundary" onclick="pickTool('boundary')"><span class="ti">⬚</span><span class="tt"><b>Ambiente da area</b><small>Tocca dentro un'area chiusa da muri: il contorno lo trova l'app</small></span></div>
-  <div class="menu-item tool-item" id="ti-connect"onclick="pickTool('connect')"><span class="ti">/</span><span class="tt"><b>Collega</b><small>Unisce due punti con una linea</small></span></div>
+  <div class="menu-item tool-item" id="ti-paste" onclick="pickTool('paste')"><span class="ti">⎗</span><span class="tt"><b>Incolla</b><small>Posa quello che hai copiato: tocca dove metterlo (si aggancia a un punto)</small></span></div>
+  <div class="menu-item tool-item" id="ti-pastehere" onclick="pasteInPlace()"><span class="ti">⎗</span><span class="tt"><b>Incolla sul posto</b><small>Sopra l'originale, per fare una variante e poi spostarla</small></span></div>
+  <div class="menu-item tool-item" id="ti-paste" onclick="pickTool('paste')"><span class="ti">⎗</span><span class="tt"><b>Incolla</b><small>Posa quello che hai copiato: tocca dove metterlo (si aggancia a un punto)</small></span></div>
+  <div class="menu-item tool-item" id="ti-pastehere" onclick="pasteInPlace()"><span class="ti">⎗</span><span class="tt"><b>Incolla sul posto</b><small>Sopra l'originale, per fare una variante e poi spostarla</small></span></div>
+  <div class="menu-item tool-item" id="ti-inherit" onclick="pickTool('inherit')"><span class="ti">⇉</span><span class="tt"><b>Eredita proprietà</b><small>Tocca un elemento da copiare, poi quelli che ne ricevono le proprietà</small></span></div>
+  <div class="menu-item tool-item" id="ti-connect" onclick="pickTool('connect')"><span class="ti">/</span><span class="tt"><b>Collega</b><small>Unisce due punti con una linea</small></span></div>
 </div>
 <div id="group-ins" class="floating-menu">
   <div class="menu-item tool-item" id="ti-opening-F" onclick="selectOpeningType('F')"><span class="ti">🪟</span><span class="tt"><b>Finestra (F)</b><small>Poi tocca il muro dove va</small></span></div>
@@ -279,6 +284,8 @@
   <div class="menu-item" data-lock onclick="openingMenuAction('edit')">✎ Modifica misure<small class="md">Larghezza, altezza, davanzale e nome</small></div>
   <div class="menu-item" onclick="openingMenuAction('energy')">📋 Dati energetici<small class="md">Vetro, telaio, cassonetto e specchiature, per l'APE</small></div>
   <div class="menu-item" data-lock onclick="openingMenuAction('delete')">🗑 Elimina<small class="md">Il muro si richiude</small></div>
+  <div class="menu-item" onclick="openingMenuAction('copy')">⎘ Copia<small class="md">Il serramento con il tratto di muro che lo porta</small></div>
+  <div class="menu-item" onclick="openingMenuAction('copy')">⎘ Copia<small class="md">Il serramento con il tratto di muro che lo porta</small></div>
   <div class="menu-item" onclick="openingMenuAction('inherit')">🖌 Eredita proprietà<small class="md">Copia misure e dati energetici su altri serramenti dello stesso tipo</small></div>
   <div class="menu-item" data-sdf onclick="openingMenuAction('editall')">✎ Modifica tutti quelli dello stesso tipo<small class="md">Stesse misure a tutte le F, PF o P</small></div>
   <div class="menu-item" data-sdf onclick="openingMenuAction('renum')">🔢 Rinumera F, PF e P<small class="md">Numeri in ordine, senza buchi</small></div>
@@ -290,6 +297,8 @@
   <div class="menu-item" onclick="segMenuAction('multi')">➕ Selezione multipla<small class="md">Poi tocca altri elementi per agire su tutti</small></div>
   <div class="menu-item" onclick="segMenuAction('F')">🪟 Inserisci finestra qui<small class="md">Nel punto toccato</small></div>
   <div class="menu-item" onclick="segMenuAction('PF')">🚪 Inserisci porta-finestra qui<small class="md">Nel punto toccato</small></div>
+  <div class="menu-item" onclick="segMenuAction('copy')">⎘ Copia<small class="md">Il muro con i suoi serramenti; poi Incolla</small></div>
+  <div class="menu-item" onclick="segMenuAction('copy')">⎘ Copia<small class="md">Il muro con i suoi serramenti; poi Incolla</small></div>
   <div class="menu-item" onclick="segMenuAction('inherit')">🖌 Eredita proprietà<small class="md">Copia classe e spessore su altri muri: tocca i muri di destinazione</small></div>
   <div class="menu-item" data-lock onclick="segMenuAction('move')">✥ Sposta<small class="md">Trascina il muro dove va</small></div>
   <div class="menu-item" onclick="segMenuAction('thick')">📏 Spessore e tipo<small class="md">Classe (colore) e spessore: servono a superficie commerciale e demolizioni</small></div>
@@ -305,6 +314,8 @@
 <div id="amb-context" class="floating-menu">
   <div class="menu-item" data-demo onclick="ambMenuAction('demo')"></div>
   <div class="menu-item" data-lock onclick="ambMenuAction('edit')">✎ Modifica ambiente<small class="md">Nome, altezza e categoria; mostra superficie e pareti</small></div>
+  <div class="menu-item" onclick="ambMenuAction('copy')">⎘ Copia ambiente<small class="md">Contorno, serramenti e dati: poi Incolla, per fare una variante</small></div>
+  <div class="menu-item" onclick="ambMenuAction('copy')">⎘ Copia ambiente<small class="md">Contorno, serramenti e dati: poi Incolla, per fare una variante</small></div>
   <div class="menu-item" onclick="ambMenuAction('inherit')">🖌 Eredita proprietà<small class="md">Copia categoria e altezza su altri ambienti</small></div>
   <div class="menu-item" data-lock onclick="ambMenuAction('delete')">🗑 Elimina solo l'ambiente<small class="md">Le linee restano</small></div>
   <div class="menu-item" data-lock onclick="ambMenuAction('deleteall')">🗑 Elimina ambiente e sue linee<small class="md">Anche i muri che non servono ad altri ambienti</small></div>
@@ -407,6 +418,7 @@
   <button id="selb-conf" title="Conferma il tipo proposto ai muri non assegnati" onclick="confirmProposals()">✔ Conferma</button>
   <button id="selb-thick" title="Spessore e tipo dei muri selezionati" onclick="wallThickMenuAction()">📏 Spessore</button>
   <button id="selb-demo" title="Demolisci o ripristina i muri e i serramenti selezionati" onclick="demoSelection()">⛏ Demolisci</button>
+  <button id="selb-copy" title="Copia la selezione: poi Incolla dal menu Disegna o Ctrl+V" onclick="copySelection()">⎘ Copia</button>
   <button id="selb-move" title="Sposta la selezione trascinando" onclick="toggleMoveSel()">✥ Sposta</button>
   <button id="selb-del" class="del" title="Elimina la selezione" onclick="deleteSelection()">🗑</button>
   <button title="Fine selezione" onclick="clearSelection()">✖</button>
@@ -946,6 +958,7 @@ function drawNow() {
   drawPencil();
   drawRoomPreview();
   drawSegments();
+  drawAmbHighlight();
   drawPilastri();
   drawOpenings();
   drawOpeningHandles();
@@ -956,6 +969,7 @@ function drawNow() {
   drawLabels();
   drawPoints();
   drawPending();
+  drawPastePreview();
   drawSelBox();
   drawExport();
   drawAssist();
@@ -1024,7 +1038,7 @@ function updateSelBar() {
   const nd = state.selSeg ? [...state.selSeg].filter(i => state.segments[i] && state.segments[i].cv==='dubbio').length : 0;
   setDisp($('selb-conf'), nd ? '' : 'none'); setTxt($('selb-conf'), '✔ Conferma ('+nd+')');
   setDisp($('selb-thick'), state.selSeg && state.selSeg.size ? '' : 'none');
-  setDisp($('selb-move'), n ? '' : 'none'); setDisp($('selb-del'), n ? '' : 'none');
+  setDisp($('selb-move'), n ? '' : 'none'); setDisp($('selb-del'), n ? '' : 'none'); setDisp($('selb-copy'), n ? '' : 'none');
   const dm = prog() && ((state.selSeg && state.selSeg.size) || (state.selOpen && state.selOpen.size));
   setDisp($('selb-demo'), dm ? '' : 'none');
   $('selb-move').classList.toggle('on', !!state.moveSel); setTxt($('selb-move'), state.moveSel ? '✥ Fine' : '✥ Sposta');
@@ -1300,6 +1314,8 @@ function segMenuAction(action) {
   hideAllMenus();
   const s = state.sel; if (!s || s.kind!=='segment' || !state.segments[s.idx]) return;
   if (action==='split')  { splitSegment(s.idx, s.t); return; }
+  if (action==='copy')   { clipCopy(new Set(), new Set([s.idx]), new Set(), new Set()); return; }
+  if (action==='copy')   { clipCopy(new Set(), new Set([s.idx]), new Set(), new Set()); return; }
   if (action==='inherit') { inheritStart('segment', s.idx); return; }
   if (action==='delete') { state.selSeg = new Set([s.idx]); state.selSet = null; state.selOpen = null; state.selPen = null; deleteSelection(); return; }
   if (action==='demo') { setDemo([s.idx], [], [], state.segments[s.idx].fase!=='demo'); return; }
@@ -1561,6 +1577,8 @@ function ambMenuAction(action) {
   const s = state.sel; if (!s || s.kind!=='ambiente') return;
   const amb = state.ambienti[s.idx]; if (!amb) return;
   if (action==='demo') { setDemo([], [], [s.idx], amb.fase!=='demo'); return; }
+  if (action==='copy') { const H = ambHighlight(s.idx); clipCopy(new Set(), H ? H.edges : new Set(), new Set(), new Set([s.idx])); return; }
+  if (action==='copy') { const H = ambHighlight(s.idx); clipCopy(new Set(), H ? H.edges : new Set(), new Set(), new Set([s.idx])); return; }
   if (action==='inherit') { inheritStart('ambiente', s.idx); return; }
   if (action==='delete') { saveHistory(); state.ambienti.splice(s.idx,1); state.sel=null; commit('Ambiente eliminato (le linee restano).'); return; }
   if (action==='deleteall') {
@@ -1603,7 +1621,7 @@ function drawAmbienti() {
       const sp = pts.map(p => w2s(p.x,p.y));
       ctx.beginPath(); ctx.moveTo(sp[0].x,sp[0].y);
       sp.slice(1).forEach(s => ctx.lineTo(s.x,s.y));
-      ctx.closePath(); ctx.fillStyle=amb.color+'28'; ctx.fill();
+      ctx.closePath(); ctx.fillStyle=amb.color+(state.sel && state.sel.kind==='ambiente' && !isSel('ambiente',k) ? '10' : '28'); ctx.fill();      // con un ambiente selezionato gli altri si attenuano
       if (isSel('ambiente',k)) { ctx.strokeStyle='#ffe066'; ctx.lineWidth=3; ctx.stroke(); }
     }
     const c = ambLabelPos(amb), area = ambNet(amb);
@@ -1672,6 +1690,44 @@ function drawSegments() {
   });
   ctx.setLineDash([]);
   state.segments.forEach((g,i) => drawQuota(i));
+}
+
+// ambiente selezionato: i muri che lo compongono (celeste), quelli che lo attraversano (viola tratteggiato) e quelli che
+// confinano con un altro ambiente (arancione), cosi' si vede cosa tocca cosa e cosa si porta via demolendo
+const AH_COL = {comp:'#00e5ff', cont:'#d36bff', conf:'#ff9f1c'};
+function ambHighlight(k) {
+  const amb = state.ambienti[k]; if (!amb) return null;
+  const idx = amb.indices, n = idx.length, edges = new Set();
+  for (let j=0; j<n; j++) { const a = idx[j], b = idx[(j+1)%n]; state.segments.forEach((g,si) => { if ((g.a===a && g.b===b) || (g.a===b && g.b===a)) edges.add(si); }); }
+  const own = new Set(), others = new Set();
+  edges.forEach(si => own.add(si));
+  state.ambienti.forEach((o,j) => { if (j===k || hid(o) || (prog() && o.fase==='demo')) return;
+    for (let t=0; t<o.indices.length; t++) { const a = o.indices[t], b = o.indices[(t+1)%o.indices.length]; state.segments.forEach((g,si) => { if ((g.a===a && g.b===b) || (g.a===b && g.b===a)) others.add(si); }); } });
+  const conf = new Set();
+  edges.forEach(si => { if (wallFaces(si, () => true).some(f => others.has(f))) conf.add(si); });
+  const pts = idx.map(i => state.points[i]).filter(Boolean), cont = new Set();
+  state.segments.forEach((g,si) => {
+    if (edges.has(si) || hid(g)) return;
+    const A = state.points[g.a], B = state.points[g.b]; if (!A || !B) return;
+    if (inPoly(pts, (A.x+B.x)/2, (A.y+B.y)/2) && (idx.includes(g.a) || idx.includes(g.b) || (inPoly(pts, A.x, A.y) && inPoly(pts, B.x, B.y)))) cont.add(si);
+  });
+  return {edges, conf, cont};
+}
+function drawAmbHighlight() {
+  if (PRINT || !state.sel || state.sel.kind!=='ambiente') return;
+  const H = ambHighlight(state.sel.idx); if (!H) return;
+  const line = (si, col, dash) => {
+    const g = state.segments[si], A = state.points[g.a], B = state.points[g.b]; if (!A || !B) return;
+    const a = w2s(A.x,A.y), b = w2s(B.x,B.y);
+    ctx.save(); ctx.globalAlpha = 0.75; ctx.strokeStyle = col; ctx.lineWidth = 7; ctx.lineCap = 'round'; ctx.setLineDash(dash);
+    ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke(); ctx.restore();
+  };
+  H.edges.forEach(si => line(si, H.conf.has(si) ? AH_COL.conf : AH_COL.comp, H.conf.has(si) ? [10,5] : []));
+  H.cont.forEach(si => line(si, AH_COL.cont, [4,6]));
+}
+function ambHighlightTip(k) {
+  const H = ambHighlight(k); if (!H) return '';
+  return state.ambienti[k].name+': celeste = pareti del contorno'+(H.conf.size ? ', arancione = confinano con un altro ambiente' : '')+(H.cont.size ? ', viola = muri dentro l’ambiente' : '')+'.';
 }
 
 function drawOpenings() {
@@ -1862,13 +1918,16 @@ const TIPS = {
   label:    'Clicca per l\'etichetta. In Seleziona la trascini e col doppio click la modifichi.',
   pencil:   'Trascina per disegnare a mano libera.',
   roompts:  'Tocca i vertici dell\'ambiente in ordine, poi di nuovo il primo per chiuderlo. Nel Progetto serve per le stanze unite o divise.',
+  paste:    'Tocca dove posare la copia: l’angolo in basso a sinistra va nel punto toccato (o sul punto più vicino). Esc per annullare.',
+  paste:    'Tocca dove posare la copia: l\'angolo in basso a sinistra va nel punto toccato (o sul punto più vicino). Esc per annullare.',
+  inherit:  'Tocca il muro, il serramento o l’ambiente da cui prendere le proprietà; poi tocca gli elementi dello stesso tipo che le ricevono. Nel vuoto: cambi sorgente, di nuovo nel vuoto finisci.',
   boundary: 'Tocca dentro un\'area chiusa da muri: il contorno viene trovato da solo. Se l\'area non è chiusa, o ha già un ambiente, te lo dico.',
 };
 
 // strumento attivo: il pulsante del suo gruppo ne prende icona e nome, la voce nella lista si evidenzia
-const TOOL_ICON  = {boundary:'⬚', roompts:'⬠',wall:'▭', room:'⬚', point:'+', connect:'/', trilatere:'◎', measure:'📏', split:'✂', opening:'🚪', pilastro:'▪', stair:'🪜', label:'🏷', pencil:'✏'};
-const TOOL_NAME  = {boundary:'Ambiente da area', roompts:'Ambiente da punti',wall:'Muro', room:'Stanza', point:'Punto', connect:'Collega', trilatere:'Trilatera', measure:'Misura', split:'Spezza', opening:'Serramento', pilastro:'Pilastro', stair:'Scala', label:'Etichetta', pencil:'Matita'};
-const TOOL_GROUP = {boundary:'draw', roompts:'draw',wall:'draw', room:'draw', point:'draw', connect:'draw', trilatere:'draw', measure:'draw', split:'draw', opening:'ins', pilastro:'ins', stair:'ins', label:'ins', pencil:'ins'};
+const TOOL_ICON  = {inherit:'⇉', boundary:'⬚', roompts:'⬠',wall:'▭', room:'⬚', point:'+', connect:'/', trilatere:'◎', measure:'📏', split:'✂', opening:'🚪', pilastro:'▪', stair:'🪜', label:'🏷', pencil:'✏'};
+const TOOL_NAME  = {paste:'Incolla', inherit:'Eredita proprietà', boundary:'Ambiente da area', roompts:'Ambiente da punti',wall:'Muro', room:'Stanza', point:'Punto', connect:'Collega', trilatere:'Trilatera', measure:'Misura', split:'Spezza', opening:'Serramento', pilastro:'Pilastro', stair:'Scala', label:'Etichetta', pencil:'Matita'};
+const TOOL_GROUP = {inherit:'draw', boundary:'draw', roompts:'draw',wall:'draw', room:'draw', point:'draw', connect:'draw', trilatere:'draw', measure:'draw', split:'draw', opening:'ins', pilastro:'ins', stair:'ins', label:'ins', pencil:'ins'};
 const GROUP_DEF  = {draw:{icon:'📐', name:'Disegna'}, ins:{icon:'🧱', name:'Inserisci'}};
 function markTool(t) {
   document.querySelectorAll('.tool-btn, .tool-item').forEach(b => b.classList.remove('active'));
@@ -1885,7 +1944,7 @@ function markTool(t) {
   const it = document.getElementById('ti-' + (t==='opening' ? 'opening-'+(state.openingType||'') : t));
   if (it) it.classList.add('active');
 }
-function pickTool(t) { hideAllMenus(); setTool(t); }
+function pickTool(t) { hideAllMenus(); if (t==='paste') { startPaste(); return; } setTool(t); if (t==='inherit') state.inherit = {kind:null}; }      // Eredita proprieta': prima il comando, poi la sorgente, poi i riceventi
 
 function setTool(t) {
   if (state.exp) expCancel();
@@ -2261,7 +2320,7 @@ function glassGrid(L, H, e) {
 function openingGlass(op) {
   const e = op.energy; if (!e) return null;
   const g = glassGrid(op.width, opHb(op), e); if (!g) return null;
-  return {n:g.n - Math.min(Math.max(0, e.pannelli||0), g.n), nTot:g.n, L:g.w, H:g.h};
+  return {n:g.n - (op.type==='PF' ? 0 : Math.min(Math.max(0, e.pannelli||0), g.n)), nTot:g.n, L:g.w, H:g.h};
 }
 // schema del serramento nella finestra Dati energetici: sta fisso in cima, bucatura in proporzione, telaio e specchiature a griglia
 // (le ultime sono i pannelli ciechi, in grigio). Si aggiorna mentre scrivi.
@@ -2271,7 +2330,7 @@ function opSketch(op) {
   const num = id => { const el = $id('dlg_'+id); return parseFloat(String(el.value.trim() || el.dataset.def || '').replace(',', '.')); };
   const m2 = v => v.toFixed(2).replace('.', ',');
   const upd = () => {
-    const L = op.width, H = opHb(op), p = Math.max(0, Math.round(num('pannelli')) || 0);
+    const L = op.width, H = opHb(op), p = op.type==='PF' ? 0 : Math.max(0, Math.round(num('pannelli')) || 0);
     const e = {nv:Math.round(num('nv')) || 0, no:Math.round(num('no')) || 0, spTelaio:num('spTelaio')};
     const g = glassGrid(L, H, e);
     const S = Math.min(220/L, (window.innerHeight < 640 ? 80 : 120)/H), W = Math.ceil(L*S+2), Hh = Math.ceil(H*S+2);
@@ -2365,6 +2424,7 @@ function openingMenuAction(action) {
 
   if (action==='multi')  { multiStart(); return; }
   if (action==='inherit') { inheritStart('opening', i); return; }
+  if (action==='copy')   { clipCopy(new Set(), new Set([op.segIdx]), new Set([i]), new Set()); return; }
   if (action==='demo')   { setDemo([], [i], [], op.fase!=='demo'); return; }
   if (action==='delete') { saveHistory(); state.openings.splice(i,1); state.sel=null; commit('Serramento eliminato.'); return; }
   if (action==='editall') {
@@ -2409,7 +2469,7 @@ function openingMenuAction(action) {
   if (action==='energy') {
     // proposti: i valori del serramento, altrimenti quelli dell'ultimo compilato nel progetto (anche dopo aver chiuso l'app)
     const e0 = op.energy || {}, d = state.openings.reduce((b, o) => o.energy && (!b || (o.energy.t||0) >= (b.t||0)) ? o.energy : b, null) || {};
-    const pf = (k, def) => (e0[k]!==undefined ? e0[k] : (d[k]!==undefined ? d[k] : def));
+    const pf = (k, def) => (e0[k]!==undefined ? e0[k] : (d[k]!==undefined ? d[k] : def)), PFt = op.type==='PF';      // la porta-finestra non ha mai il sotto finestra (pannello cieco)
     const DIST = ['PVC 8 mm', 'Alluminio', 'Acciaio inox', 'Altro'], dcur = pf('distanz', 'PVC 8 mm');
     const dsel = DIST.includes(dcur) ? dcur : 'Altro';
     const yn = [{value:'no',label:'No'},{value:'si',label:'Sì'}];
@@ -2427,7 +2487,7 @@ function openingMenuAction(action) {
       {type:'head', label:'Specchiature'},
       {label:'Divisori verticali', id:'nv', type:'number', half:true, value:pf('nv','0')},
       {label:'Divisori orizzontali', id:'no', type:'number', half:true, value:pf('no','0')},
-      {label:'Pannelli ciechi (su quante specchiature)', id:'pannelli', type:'number', value:pf('pannelli','0')},
+      {label:'Pannelli ciechi (su quante specchiature)', id:'pannelli', type:'number', value:pf('pannelli','0'), sec:'pann'},
       {type:'head', label:'Oscurante'},
       {label:'Oscurante', id:'oscurante', type:'select', value:pf('oscurante','avv'),
         options:[{value:'pers',label:'Persiana'},{value:'avv',label:'Avvolgibile'},{value:'scuri',label:'Scuri'},{value:'no',label:'Nessuno'}]},
@@ -2445,7 +2505,7 @@ function openingMenuAction(action) {
         distanz:v.vetro==='S' ? undefined : (v.distanz==='Altro' ? (v.distanzAlt||'Altro') : v.distanz),
         cass:avv ? 'si' : 'no', cassIso:avv ? v.cassIso : undefined, cassH:avv && v.cassH ? parseFloat(v.cassH) : undefined, cassP:avv && v.cassP ? parseFloat(v.cassP) : undefined,
         telaio:v.telaio, spTelaio:v.spTelaio ? parseFloat(v.spTelaio) : undefined, oscurante:v.oscurante,
-        nv:int(v.nv, 0), no:int(v.no, 0), pannelli:int(v.pannelli, 0),
+        nv:int(v.nv, 0), no:int(v.no, 0), pannelli:PFt ? 0 : int(v.pannelli, 0),
         note:v.note||undefined, t:Date.now(),
       };
       const ar = openingAreas(op);
@@ -2456,7 +2516,7 @@ function openingMenuAction(action) {
     // sezioni che compaiono solo quando servono: distanziale con doppio e triplo, cassonetto con l'avvolgibile
     const sync = () => {
       const vd = $id('dlg_vetro').value, ds = $id('dlg_distanz').value;
-      showSec('dist', vd!=='S'); showSec('distalt', vd!=='S' && ds==='Altro'); showSec('cass', $id('dlg_oscurante').value==='avv');
+      showSec('dist', vd!=='S'); showSec('distalt', vd!=='S' && ds==='Altro'); showSec('cass', $id('dlg_oscurante').value==='avv'); showSec('pann', !PFt);
     };
     ['dlg_vetro','dlg_distanz','dlg_oscurante'].forEach(id => $id(id).addEventListener('change', sync)); sync();
     opSketch(op);
@@ -3049,6 +3109,7 @@ function handleClick(sx, sy, clientX, clientY, shift) {
     if (pick) {
       state.sel = {kind:pick[0], idx:pick[1]};
       if (pick[0]==='segment') state.sel.t = segmentT(pick[1], sx, sy);
+      if (pick[0]==='ambiente') setTip(ambHighlightTip(pick[1]));
       draw(); showMenu(pick[2], clientX+8, clientY+8, false, {x:clientX, y:clientY}); return;
     }
     state.sel=null; state.selSet=null; state.selOpen=null; state.selSeg=null; draw(); return;
@@ -3093,6 +3154,10 @@ function handleClick(sx, sy, clientX, clientY, shift) {
     const key = [...cyc].sort((a,b)=>a-b).join(',');
     if (state.ambienti.some(a => [...a.indices].sort((x,y)=>x-y).join(',')===key)) { setTip('Qui c\'è già un ambiente.'); return; }
     askRoom(cyc); return;
+  }
+  case 'paste': {                      // incolla: l'angolo in basso a sinistra della copia va nel punto toccato
+    const a = pi!==null ? state.points[pi] : (baseSnap(sx,sy) || s2w(sx,sy));
+    placePaste(a.x, a.y); return;
   }
   case 'roompts': {                    // ambiente da punti: i vertici in ordine, si chiude toccando il primo
     if (pi===null) { setTip('Tocca un punto: i vertici dell\'ambiente, in ordine.'); return; }
@@ -3284,6 +3349,7 @@ canvas.addEventListener('pointerdown', e => {
 canvas.addEventListener('pointermove', e => {
   if (!state.pointers.has(e.pointerId)) {
     if (state.tool==='wall' && state.wallOrigin!==null) { const p=evtPos(e); updateWallPreview(p.x,p.y); }
+    if (state.tool==='paste' && state.paste) { const p=evtPos(e), pi=hitPoint(p.x,p.y); state.paste.at = pi!==null ? {x:state.points[pi].x, y:state.points[pi].y} : s2w(p.x,p.y); draw(); }
     if (e.pointerType==='mouse' && state.tool==='select') {         // col mouse sopra la scala compare la sua etichetta
       const q = evtPos(e), h = hitScala(q.x,q.y);
       if (h!==state.hoverScala) { state.hoverScala = h; draw(); }
@@ -3510,6 +3576,7 @@ document.addEventListener('keydown', e => {
     if (typing) return;                       // il dialog gestisce l'ESC per conto suo
     if (state.exp) { expCancel(); return; }
     if (state.inherit) { inheritEnd('Eredita proprietà finita.'); return; }
+    if (state.tool==='paste') { setTool('select'); setTip('Incolla annullato.'); return; }
     if (state.pending || state.trilStep || state.circles.length) { resetTril(); setTip('Trilaterazione annullata.'); }
     if (state.tool==='wall') resetWall();
     state.measureShow=null; state.roomDraw=null;
@@ -3527,6 +3594,8 @@ document.addEventListener('keydown', e => {
     if (state.sel && state.sel.kind==='opening') { openingMenuAction('delete'); return; }
     if (state.sel && state.sel.kind!=='quota') { entityMenuAction('delete'); return; }
   }
+  if ((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='c') { e.preventDefault(); copySelection(); }
+  if ((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='v') { e.preventDefault(); startPaste(); }
   if ((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='z') { e.preventDefault(); undo(); }
   if ((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='s') { e.preventDefault(); saveProject(); }
 });
@@ -3591,7 +3660,7 @@ const photoStore = new Map(); let photoSeq = 0;
 // COMPATIBILITA' DEI PROGETTI: un rilievo di qualsiasi versione si apre sempre. Ogni modifica del formato dei dati
 // alza DATA_FMT e aggiunge qui il suo passo, che aggiorna il progetto e dice cosa e' cambiato e cosa controllare a mano.
 // I passi si applicano in ordine dal formato del progetto in poi. Formato 1 = progetti fino alla 2.02 (senza "fmt").
-const DATA_FMT = 4;
+const DATA_FMT = 5;
 const MIGRATIONS = [
   { fmt:2, ver:'2.03', run:o => {
     (o.ambienti||[]).forEach(a => { if (a.outdoor && !a.category) a.category = 'balconi'; delete a.outdoor; });   // flag "senza volume" delle 1.16-1.19
@@ -3614,6 +3683,11 @@ const MIGRATIONS = [
       delete e.vetri; delete e.vetroL; delete e.vetroH;
     });
     return n ? ['Serramenti: le specchiature ora si indicano con i divisori verticali e orizzontali (come in EC700) e sono sempre uguali tra loro. I '+n+' serramenti compilati hanno i divisori verticali del vecchio numero di vetri e nessun divisore orizzontale.'+(man ? ' '+man+' avevano le misure delle specchiature scritte a mano: ora sono calcolate, controllale.' : '')+' Il profilo senza spessore scritto vale 8 cm (prima 9).'] : [];
+  }},
+  { fmt:5, ver:'2.06', run:o => {
+    let n = 0;
+    (o.openings||[]).forEach(op => { if (op.type==='PF' && op.energy && op.energy.pannelli) { op.energy.pannelli = 0; n++; } });
+    return n ? ['Porte-finestre: niente più pannelli ciechi (sotto finestra). '+(n===1 ? 'Una porta-finestra li aveva' : n+' porte-finestre li avevano')+' e ora sono a zero: controlla le specchiature.'] : [];
   }},
 ];
 // aggiorna il progetto letto (file o browser) al formato corrente; restituisce le note per chi lo apre ([] se era gia' aggiornato)
@@ -5696,7 +5770,7 @@ const INH_ARR = {segment:'segments', opening:'openings', ambiente:'ambienti'}, I
 function inheritStart(kind, idx) {
   const el = state[INH_ARR[kind]][idx]; if (!el) return;
   state.inherit = {kind, type:el.type, p:JSON.parse(JSON.stringify(inhProps(kind, el)))};
-  setTip('Eredita proprietà: tocca i '+INH_NAME[kind]+' a cui applicarle'+(kind==='opening' ? ' (dello stesso tipo, '+el.label+')' : '')+'. Per finire tocca nel vuoto o premi Esc.');
+  setTip('Sorgente: '+(kind==='opening' ? el.label : kind==='ambiente' ? el.name : 'muro'+(el.thick ? ' da '+Math.round(el.thick*100)+' cm' : ''))+'. Tocca i '+INH_NAME[kind]+' che ricevono le proprietà'+(kind==='opening' ? ' (dello stesso tipo, '+el.type+')' : '')+'. Nel vuoto: cambi sorgente. Esc: finisci.');
   state.sel = null; draw();
 }
 function inhProps(kind, el) {
@@ -5705,12 +5779,18 @@ function inhProps(kind, el) {
   const e = el.energy ? Object.assign({}, el.energy) : null; if (e) delete e.note;
   return {width:el.width, hb:el.hb, h0:el.h0, spessore:el.spessore, energy:e};
 }
-function inheritEnd(msg) { state.inherit = null; if (msg) setTip(msg); draw(); }
+function inheritEnd(msg) { if (state.tool==='inherit') setTool('select'); state.inherit = null; if (msg) setTip(msg); draw(); }
 // un tocco in modalita' eredita: true se l'ha gestito
 function inheritTap(sx, sy) {
   const I = state.inherit; if (!I) return false;
+  if (!I.kind) {                                 // fase 2: la sorgente
+    const o = hitOpening(sx, sy), g = o===null ? hitSegment(sx, sy) : null, a = o===null && g===null ? hitAmbiente(sx, sy) : null;
+    if (o!==null) inheritStart('opening', o); else if (g!==null) inheritStart('segment', g); else if (a!==null) inheritStart('ambiente', a);
+    else inheritEnd('Eredita proprietà finita.');
+    return true;
+  }
   const idx = I.kind==='segment' ? hitSegment(sx, sy) : I.kind==='opening' ? hitOpening(sx, sy) : hitAmbiente(sx, sy);
-  if (idx===null) { inheritEnd('Eredita proprietà finita.'); return true; }
+  if (idx===null) { state.inherit = {kind:null}; setTip('Tocca un altro elemento da cui prendere le proprietà. Nel vuoto di nuovo, o Esc: finisci.'); draw(); return true; }
   const el = state[INH_ARR[I.kind]][idx];
   if (I.kind==='opening' && el.type!==I.type) { setTip('Solo serramenti dello stesso tipo ('+I.type+'): questo è '+el.type+'.'); return true; }
   if (locked(el)) { lockTip(); return true; }
@@ -5725,6 +5805,83 @@ function inheritTap(sx, sy) {
   }
   commit('Proprietà applicate. Tocca un altro, oppure il vuoto per finire.', true);
   return true;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  COPIA E INCOLLA di muri, serramenti e ambienti (con i loro punti): serve a fare varianti di progetto, anche da un
+//  rilievo a un altro (la copia resta nel browser). Si copia dal menu dell'elemento, dalla barra della selezione o con
+//  Ctrl+C; si incolla dal menu Disegna o con Ctrl+V. Quello che si incolla e' nuovo (nel Progetto) e resta selezionato.
+// ═══════════════════════════════════════════════════════════
+const CLIP_KEY = 'app_rilievo_clip';
+let CLIP = null;
+function clipCopy(pts0, segs0, ops0, ambs0) {
+  const pts = new Set(pts0), segs = new Set([...segs0].filter(i => state.segments[i] && live(state.segments[i]))), ops = new Set(ops0), ambs = new Set(ambs0);
+  state.segments.forEach((g,i) => { if (live(g) && pts.has(g.a) && pts.has(g.b)) segs.add(i); });            // le linee tra punti presi
+  segs.forEach(i => { pts.add(state.segments[i].a); pts.add(state.segments[i].b); });
+  state.openings.forEach((o,i) => { if (live(o) && segs.has(o.segIdx)) ops.add(i); });
+  state.ambienti.forEach((a,k) => { if (live(a) && a.indices.length>=3 && a.indices.every(i => pts.has(i))) ambs.add(k); });
+  [...ops].forEach(i => { if (!segs.has(state.openings[i].segIdx)) ops.delete(i); });
+  if (!pts.size || (!segs.size && !ambs.size)) { setTip('Niente da copiare: scegli muri, serramenti o un ambiente.'); return; }
+  const P = [...pts].filter(i => state.points[i]), pm = new Map(P.map((i,k) => [i,k]));
+  const x0 = Math.min(...P.map(i => state.points[i].x)), y0 = Math.min(...P.map(i => state.points[i].y));
+  const S = [...segs].filter(i => pm.has(state.segments[i].a) && pm.has(state.segments[i].b)), sm = new Map(S.map((i,k) => [i,k]));
+  const strip = (o, ks) => { const c = JSON.parse(JSON.stringify(o)); ks.forEach(k => delete c[k]); return c; };
+  CLIP = {
+    ox:x0, oy:y0,
+    pts:P.map(i => ({dx:state.points[i].x-x0, dy:state.points[i].y-y0})),
+    segs:S.map(i => { const g = strip(state.segments[i], ['fase','ok','okLen','qo']); g.a = pm.get(g.a); g.b = pm.get(g.b); return g; }),
+    ops:[...ops].filter(i => sm.has(state.openings[i].segIdx)).map(i => { const o = strip(state.openings[i], ['fase','label']); o.segIdx = sm.get(o.segIdx); return o; }),
+    ambs:[...ambs].filter(k => state.ambienti[k].indices.every(i => pm.has(i))).map(k => { const a = strip(state.ambienti[k], ['fase']); a.indices = a.indices.map(i => pm.get(i)); return a; }),
+  };
+  try { localStorage.setItem(CLIP_KEY, JSON.stringify(CLIP)); } catch (err) {}
+  setTip('Copiati: '+CLIP.segs.length+' muri, '+CLIP.ops.length+' serramenti, '+CLIP.ambs.length+' ambienti. Incolla dal menu Disegna o con Ctrl+V.');
+}
+function copySelection() {
+  const s = state.sel, set = k => new Set(state[k]||[]);
+  if (!selCount() && s) {
+    if (s.kind==='segment') { clipCopy(new Set(), new Set([s.idx]), new Set(), new Set()); return; }
+    if (s.kind==='opening' && state.openings[s.idx]) { clipCopy(new Set(), new Set([state.openings[s.idx].segIdx]), new Set([s.idx]), new Set()); return; }
+    if (s.kind==='ambiente') { ambMenuAction('copy'); return; }
+  }
+  clipCopy(set('selSet'), set('selSeg'), set('selOpen'), new Set());
+}
+function clipLoad() {
+  if (CLIP) return true;
+  try { CLIP = JSON.parse(localStorage.getItem(CLIP_KEY) || 'null'); } catch (err) { CLIP = null; }
+  return !!CLIP;
+}
+function startPaste() {
+  hideAllMenus();
+  if (!clipLoad()) { setTip('Niente da incollare: copia prima muri, serramenti o un ambiente.'); return; }
+  setTool('paste'); state.paste = {at:null}; setTip(TIPS.paste); draw();
+}
+function pasteInPlace() { hideAllMenus(); if (!clipLoad()) { setTip('Niente da incollare: copia prima muri, serramenti o un ambiente.'); return; } placePaste(CLIP.ox, CLIP.oy); }
+function placePaste(ax, ay) {
+  if (!CLIP) return;
+  saveHistory();
+  const pn = CLIP.pts.map(p => newPoint(ax+p.dx, ay+p.dy)), sn = [], on = [];
+  CLIP.segs.forEach(g => { state.segments.push({...JSON.parse(JSON.stringify(g)), a:pn[g.a], b:pn[g.b]}); sn.push(state.segments.length-1); });
+  CLIP.ops.forEach(o => { const c = JSON.parse(JSON.stringify(o)); c.segIdx = sn[o.segIdx]; c.label = nextOpeningLabel(c.type); state.openings.push(c); on.push(state.openings.length-1); });
+  CLIP.ambs.forEach(a => {
+    const c = JSON.parse(JSON.stringify(a)), base = roomBase(c.name);
+    c.indices = a.indices.map(i => pn[i]); c.color = AMB_COLORS[state.ambienti.length % AMB_COLORS.length];
+    state.ambienti.push(c); c.name = base ? roomName(base, c) : c.name+' (copia)';
+  });
+  setTool('select');
+  state.selSet = new Set(pn); state.selSeg = new Set(sn); state.selOpen = new Set(on); state.selAnchor = {x:ax, y:ay};
+  commit('Incollati: '+sn.length+' muri, '+on.length+' serramenti, '+CLIP.ambs.length+' ambienti, selezionati: con "Sposta" li porti dove servono.');
+}
+function drawPastePreview() {
+  if (state.tool!=='paste' || !state.paste || !state.paste.at || !CLIP) return;
+  const at = state.paste.at, W = p => w2s(at.x+p.dx, at.y+p.dy);
+  ctx.save(); ctx.globalAlpha = 0.8; ctx.setLineDash([6,4]);
+  CLIP.ambs.forEach(a => { ctx.beginPath(); a.indices.forEach((i,j) => { const q = W(CLIP.pts[i]); j ? ctx.lineTo(q.x,q.y) : ctx.moveTo(q.x,q.y); }); ctx.closePath(); ctx.fillStyle = 'rgba(255,224,102,.15)'; ctx.fill(); });
+  ctx.strokeStyle = '#ffe066'; ctx.lineWidth = 2.5;
+  CLIP.segs.forEach(g => { const a = W(CLIP.pts[g.a]), b = W(CLIP.pts[g.b]); ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke(); });
+  ctx.setLineDash([]); ctx.fillStyle = '#ffe066';
+  CLIP.ops.forEach(o => { const g = CLIP.segs[o.segIdx], a = W(CLIP.pts[g.a]), b = W(CLIP.pts[g.b]), x = a.x+(b.x-a.x)*o.t, y = a.y+(b.y-a.y)*o.t; ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI*2); ctx.fill(); });
+  CLIP.pts.forEach(p => { const q = W(p); ctx.beginPath(); ctx.arc(q.x, q.y, 3, 0, Math.PI*2); ctx.fill(); });
+  ctx.restore();
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -5842,8 +5999,8 @@ else {
 //  WEBAPP INSTALLABILE (solo se servita da internet, non da file locale)
 // ═══════════════════════════════════════════════════════════
 // versione e novita' vengono scritte da pubblica_app.py leggendo la prima voce di CHANGELOG.md
-const APP_VERSION = '2.05';
-const APP_NOTE = ["Menu: niente voci in rosso, righe a colori alternati oltre le 3 voci. Al posto delle tendine del sistema c'è un selettore dell'app, con categorie e sottocategorie (per esempio Balconi e verande) e nomi brevi", "Scheda Dati energetici a sezioni (Telaio, Vetri, Specchiature, Oscurante, Cassonetto, Note) con lo schemino sempre in cima. Telaio: un solo spessore del profilo (8 cm se non scritto). Doppio e triplo propongono il distanziale PVC 8 mm, modificabile o \"Altro\". Il cassonetto compare solo con l'avvolgibile", "Specchiature con divisori verticali e orizzontali, uguali tra loro come in EC700; ogni pannello cieco occupa una specchiatura", "Tabelle esportate in A4 verticale (orizzontale solo se le colonne non ci stanno), con \"Aggiornato il [data]\" in grigio corsivo. Quote del disegno esportato in grigio", "Filigrana sottile della planimetria importata in PDF e JPG, solo spuntando \"Filigrana base\" nella scelta della zona", "\"Eredita proprietà\" nel menu di muri, serramenti e ambienti: copia classe e spessore, misure e dati energetici, categoria e altezza su altri elementi toccandoli, come in AutoCAD", "Strumento \"Ambiente da area\" (menu Disegna): tocchi dentro un'area chiusa da muri e l'app trova da sola il contorno, senza ridisegnarlo, come \"disegna perimetro\" di AutoCAD. Nel Progetto usa solo i muri non demoliti"];
+const APP_VERSION = '2.06';
+const APP_NOTE = ["Ambiente selezionato: i suoi muri si evidenziano (celeste il contorno, arancione i muri che confinano con un altro ambiente, viola quelli dentro l'ambiente) e gli altri ambienti si attenuano, così si capisce cosa tocca cosa", "Copia e incolla di muri, serramenti e ambienti: \"Copia\" nei menu e nella barra della selezione (Ctrl+C), \"Incolla\" e \"Incolla sul posto\" nel menu Disegna (Ctrl+V). Utile per fare varianti di progetto; la copia resta anche aprendo un altro rilievo", "\"Eredita proprietà\" è anche un comando: lo scegli, tocchi l'elemento da cui prendere le proprietà e poi quelli che le ricevono. Nel vuoto cambi sorgente, di nuovo nel vuoto finisci. Resta anche nei menu degli elementi come scorciatoia", "Porta-finestra: niente più pannelli ciechi (sotto finestra). Nei progetti vecchi vengono azzerati e l'app te lo dice", "Righe alternate dei menu in arancione più leggibili"];
 const IS_LOCAL = APP_VERSION.startsWith('__');
 document.getElementById('menu-version').textContent = IS_LOCAL ? 'Versione locale' : 'ℹ Versione '+APP_VERSION+' - novità';
 // finestra con un elenco puntato (novita', note di aggiornamento del progetto); extra = secondo elenco con titoletto
