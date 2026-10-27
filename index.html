@@ -379,10 +379,10 @@
 </div>
 <div id="walls-panel" class="side-panel">
   <h4>Ricalco per ambienti</h4>
-  <div class="row"><span>Larghezza massima porte (cm)</span><b id="w-door-v">90</b></div>
-  <input type="range" id="w-door" min="50" max="200" step="5" value="90" oninput="wallsSchedule()">
-  <div class="row"><span>Semplificazione (1 dettaglio - 5 poche linee)</span><b id="w-lev-v">3</b></div>
-  <input type="range" id="w-lev" min="1" max="5" step="1" value="3" oninput="wallsSchedule()">
+  <div class="row wp-raster"><span>Larghezza massima porte (cm)</span><b id="w-door-v">90</b></div>
+  <input class="wp-raster" type="range" id="w-door" min="50" max="200" step="5" value="90" oninput="wallsSchedule()">
+  <div class="row wp-raster"><span>Semplificazione (1 dettaglio - 5 poche linee)</span><b id="w-lev-v">3</b></div>
+  <input class="wp-raster" type="range" id="w-lev" min="1" max="5" step="1" value="3" oninput="wallsSchedule()">
   <div id="walls-count" style="color:#ffe066"></div>
   <div class="row"><button class="ok" id="walls-apply" onclick="wallsApply()">✔ Applica al disegno</button><button onclick="wallsClose()">Chiudi</button></div>
 </div>
@@ -5215,6 +5215,12 @@ function drawWallsPrev() {
   });
   ctx.fillStyle = '#ff9f43';
   P.nodes.forEach(n => { const s=w2s(n.x,n.y); ctx.beginPath(); ctx.arc(s.x,s.y,3,0,Math.PI*2); ctx.fill(); });
+  (P.ops||[]).forEach(o => {                                              // porte (rosso) e finestre (blu) proposte dal DXF
+    const a = w2s(o.cx - o.ux*o.width/2, o.cy - o.uy*o.width/2), b = w2s(o.cx + o.ux*o.width/2, o.cy + o.uy*o.width/2);
+    ctx.strokeStyle = o.type==='P' ? '#ff5a5a' : '#4aa8ff'; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  });
+  ctx.strokeStyle = '#3ddc84'; ctx.lineWidth = 2.5;
+  (P.pil||[]).forEach(q => { const a = w2s(q.x, q.y), b = w2s(q.x+q.w, q.y-q.h); ctx.strokeRect(a.x, a.y, b.x-a.x, b.y-a.y); });
   ctx.restore();
 }
 
@@ -5759,18 +5765,262 @@ function impCalibAsk() {
     }, () => { impUpdateBar(); impDraw(); });                // annullo la domanda: i punti restano, si possono ancora regolare
 }
 
+// motore vettoriale per DXF: da linee esatte (metri) a ambienti, perimetro, porte, finestre e pilastri.
+// Spezza le linee negli incroci, toglie i tratti isolati, chiude i varchi delle porte (stipiti uno di fronte all'altro,
+// stipite contro un muro, arco di apertura), trova le aree chiuse: ambienti, e dentro il muro le celle delle finestre.
+function dxfPlan(raw, arcs) {
+  arcs = arcs || [];
+  const EPS = 0.0015, SN = 0.001;
+  const S = raw.map(s => ({ax:s[0], ay:s[1], bx:s[2], by:s[3]})).filter(s => Math.hypot(s.bx-s.ax, s.by-s.ay) > 0.002);
+  const n = S.length, ts = S.map(() => []);
+  // 1. spezza ogni linea dove ne incontra un'altra (incroci, T, estremi appoggiati)
+  const bb = S.map(s => ({x0:Math.min(s.ax,s.bx)-EPS, x1:Math.max(s.ax,s.bx)+EPS, y0:Math.min(s.ay,s.by)-EPS, y1:Math.max(s.ay,s.by)+EPS}));
+  const onSeg = (p, s, i) => {                       // estremo p di un'altra linea sulla linea s: parametro t interno
+    const dx = s.bx-s.ax, dy = s.by-s.ay, L2 = dx*dx+dy*dy, t = ((p[0]-s.ax)*dx + (p[1]-s.ay)*dy)/L2;
+    const d = Math.hypot(p[0]-(s.ax+t*dx), p[1]-(s.ay+t*dy)), L = Math.sqrt(L2);
+    if (d < EPS && t*L > EPS && (1-t)*L > EPS) ts[i].push(t);
+  };
+  for (let i=0; i<n; i++) for (let j=i+1; j<n; j++) {
+    const a = bb[i], b = bb[j]; if (a.x1 < b.x0 || b.x1 < a.x0 || a.y1 < b.y0 || b.y1 < a.y0) continue;
+    const si = S[i], sj = S[j];
+    onSeg([sj.ax, sj.ay], si, i); onSeg([sj.bx, sj.by], si, i); onSeg([si.ax, si.ay], sj, j); onSeg([si.bx, si.by], sj, j);
+    const dix = si.bx-si.ax, diy = si.by-si.ay, djx = sj.bx-sj.ax, djy = sj.by-sj.ay, d = dix*djy - diy*djx;
+    if (Math.abs(d) < 1e-12) continue;
+    const t = ((sj.ax-si.ax)*djy - (sj.ay-si.ay)*djx)/d, u = ((sj.ax-si.ax)*diy - (sj.ay-si.ay)*dix)/d;
+    const Li = Math.hypot(dix, diy), Lj = Math.hypot(djx, djy);
+    if (t*Li > EPS && (1-t)*Li > EPS && u*Lj > EPS && (1-u)*Lj > EPS) { ts[i].push(t); ts[j].push(u); }
+  }
+  // 2. nodi (1 mm) e lati senza doppioni
+  const nodeId = new Map(), nodes = [];
+  const cell = 0.003, nid = (x, y) => {                  // nodo gia' presente entro 1,5 mm (griglia con controllo delle celle vicine: niente salti da arrotondamento)
+    const cx = Math.floor(x/cell), cy = Math.floor(y/cell);
+    for (let i=-1; i<=1; i++) for (let j=-1; j<=1; j++) { const l = nodeId.get((cx+i)+','+(cy+j)); if (l) for (const v of l) if (Math.hypot(nodes[v].x-x, nodes[v].y-y) < 0.0015) return v; }
+    const v = nodes.length, k = cx+','+cy; nodes.push({x, y}); if (nodeId.has(k)) nodeId.get(k).push(v); else nodeId.set(k, [v]); return v;
+  };
+  const edgeKey = new Set(), edges = [];
+  const addEdge = (a, b, bridge) => { if (a===b) return; const k = a<b ? a+'_'+b : b+'_'+a; if (edgeKey.has(k)) return; edgeKey.add(k); edges.push({a, b, bridge:!!bridge}); };
+  S.forEach((s, i) => {
+    const t = [0, ...ts[i].sort((p, q) => p-q), 1];
+    for (let k=0; k<t.length-1; k++) {
+      if (t[k+1]-t[k] < 1e-9) continue;
+      addEdge(nid(s.ax+(s.bx-s.ax)*t[k], s.ay+(s.by-s.ay)*t[k]), nid(s.ax+(s.bx-s.ax)*t[k+1], s.ay+(s.by-s.ay)*t[k+1]));
+    }
+  });
+  // 3. toglie i tratti che finiscono nel nulla (quote, anta delle porte, segni)
+  const prune = () => {
+    const deg = new Array(nodes.length).fill(0); edges.forEach(e => { if (!e.dead) { deg[e.a]++; deg[e.b]++; } });
+    let again = true;
+    while (again) {
+      again = false;
+      edges.forEach(e => { if (!e.dead && (deg[e.a]===1 || deg[e.b]===1)) { e.dead = true; deg[e.a]--; deg[e.b]--; again = true; } });
+    }
+  };
+  const doors = [];
+  const live = () => edges.filter(e => !e.dead);
+  const adjOf = () => { const a = nodes.map(() => []); live().forEach(e => { a[e.a].push(e.b); a[e.b].push(e.a); }); return a; };
+  const len = (a, b) => Math.hypot(nodes[b].x-nodes[a].x, nodes[b].y-nodes[a].y);
+  // 3b. muri che finiscono liberi uno di fronte all'altro (varco di una porta senza stipiti): si chiude il varco
+  {
+    const deg = nodes.map(() => 0); live().forEach(e => { deg[e.a]++; deg[e.b]++; });
+    const D = [];
+    live().forEach(e => [[e.a, e.b], [e.b, e.a]].forEach(([p, q]) => {
+      const l = len(p, q); if (deg[p]===1 && deg[q]>=3 && l >= 0.4) D.push({p, d:[(nodes[p].x-nodes[q].x)/l, (nodes[p].y-nodes[q].y)/l]});
+    }));
+    const used = new Set();
+    D.forEach((i, ii) => {
+      if (used.has(ii)) return;
+      let best = null;
+      D.forEach((j, jj) => {
+        if (jj===ii || used.has(jj) || i.d[0]*j.d[0]+i.d[1]*j.d[1] > -0.98) return;
+        const vx = nodes[j.p].x-nodes[i.p].x, vy = nodes[j.p].y-nodes[i.p].y, g = vx*i.d[0]+vy*i.d[1], lat = Math.abs(-vx*i.d[1]+vy*i.d[0]);
+        if (g >= 0.45 && g <= 1.5 && lat < 0.03 && (!best || g < best.g)) best = {jj, j, g};
+      });
+      if (!best) return;
+      used.add(ii); used.add(best.jj); addEdge(i.p, best.j.p, true);
+      const mx = (nodes[i.p].x+nodes[best.j.p].x)/2, my = (nodes[i.p].y+nodes[best.j.p].y)/2;
+      if (!doors.some(d => Math.hypot((nodes[d.a].x+nodes[d.b].x)/2-mx, (nodes[d.a].y+nodes[d.b].y)/2-my) < 0.7)) doors.push({a:i.p, b:best.j.p, width:best.g, thick:0.1});
+    });
+  }
+  prune();
+  // 4. porte: due stipiti (lati corti agli angoli di un muro) uno di fronte all'altro, 45-150 cm: si chiude il varco su entrambe le facce
+  {
+    const adj = adjOf(), J = [];
+    const cp = nodes.map((_, i) => i); const fnd = x => { while (cp[x]!==x) { cp[x] = cp[cp[x]]; x = cp[x]; } return x; };
+    live().forEach(e => { cp[fnd(e.a)] = fnd(e.b); });
+    const cnt = new Map(); live().forEach(e => { const r = fnd(e.a); cnt.set(r, (cnt.get(r)||0)+1); });
+    const isolated = e => cnt.get(fnd(e.a)) <= 8;                         // quadrati isolati (pilastri) non sono stipiti
+    live().forEach(e => {
+      if (isolated(e)) return;
+      const l = len(e.a, e.b); if (l < 0.05 || l > 0.7 || adj[e.a].length!==2 || adj[e.b].length!==2) return;
+      const a2 = adj[e.a].find(v => v!==e.b), b2 = adj[e.b].find(v => v!==e.a);
+      const ex = (nodes[e.b].x-nodes[e.a].x)/l, ey = (nodes[e.b].y-nodes[e.a].y)/l;
+      const la = len(e.a, a2), lb = len(e.b, b2); if (la < 0.12 || lb < 0.12) return;
+      const da = [(nodes[a2].x-nodes[e.a].x)/la, (nodes[a2].y-nodes[e.a].y)/la], db = [(nodes[b2].x-nodes[e.b].x)/lb, (nodes[b2].y-nodes[e.b].y)/lb];
+      if (da[0]*db[0]+da[1]*db[1] < 0.98 || Math.abs(da[0]*ex+da[1]*ey) > 0.1) return;
+      J.push({a:e.a, b:e.b, l, f:[-da[0], -da[1]], c:[(nodes[e.a].x+nodes[e.b].x)/2, (nodes[e.a].y+nodes[e.b].y)/2]});
+    });
+    const crossed = (p, q) => live().some(e => {                        // qualcosa attraversa il varco: gia' chiuso
+      const A = nodes[e.a], B = nodes[e.b], d1x = q[0]-p[0], d1y = q[1]-p[1], d2x = B.x-A.x, d2y = B.y-A.y, d = d1x*d2y - d1y*d2x;
+      if (Math.abs(d) < 1e-12) return false;
+      const t = ((A.x-p[0])*d2y - (A.y-p[1])*d2x)/d, u = ((A.x-p[0])*d1y - (A.y-p[1])*d1x)/d;
+      return t > 0.03 && t < 0.97 && u > 0.02 && u < 0.98;
+    });
+    const used = new Set();
+    J.forEach((j1, i1) => {
+      let best = null;
+      J.forEach((j2, i2) => {
+        if (i2===i1 || used.has(i1) || used.has(i2)) return;
+        if (j1.f[0]*j2.f[0]+j1.f[1]*j2.f[1] > -0.98 || Math.abs(j1.l-j2.l) > 0.06) return;
+        const vx = j2.c[0]-j1.c[0], vy = j2.c[1]-j1.c[1], g = vx*j1.f[0]+vy*j1.f[1], lat = Math.abs(-vx*j1.f[1]+vy*j1.f[0]);
+        if (g < 0.45 || g > 1.5 || lat > 0.06) return;
+        if (!best || g < best.g) best = {i2, j2, g};
+      });
+      if (!best || crossed(j1.c, best.j2.c)) return;
+      used.add(i1); used.add(best.i2);
+      const j2 = best.j2, d1 = len(j1.a, j2.a)+len(j1.b, j2.b), d2 = len(j1.a, j2.b)+len(j1.b, j2.a);
+      const pairs = d1 <= d2 ? [[j1.a, j2.a], [j1.b, j2.b]] : [[j1.a, j2.b], [j1.b, j2.a]];
+      pairs.forEach(([p, q]) => addEdge(p, q, true));
+      doors.push({a:pairs[0][0], b:pairs[0][1], width:best.g, thick:j1.l});
+    });
+    // porte dall'arco di apertura: cerniera = centro, estremo chiuso = l'estremo dell'arco che cade su un nodo del muro
+    const nearNode = (x, y, r) => { let b = -1, bd = r; nodes.forEach((p, i) => { if (!adj[i].length) return; const d = Math.hypot(p.x-x, p.y-y); if (d < bd) { bd = d; b = i; } }); return b; };
+    arcs.forEach(a => {
+      if (a.r < 0.5 || a.r > 1.3) return;
+      const E = [[a.x+a.r*Math.cos(a.a0*Math.PI/180), a.y+a.r*Math.sin(a.a0*Math.PI/180)], [a.x+a.r*Math.cos(a.a1*Math.PI/180), a.y+a.r*Math.sin(a.a1*Math.PI/180)]];
+      const H = nearNode(a.x, a.y, 0.03), h = E.map(p => nearNode(p[0], p[1], 0.03));
+      const ci = h[0] >= 0 && h[1] < 0 ? 0 : h[1] >= 0 && h[0] < 0 ? 1 : -1;
+      if (H < 0 || ci < 0 || h[ci]===H) return;
+      const C = h[ci], k = H<C ? H+'_'+C : C+'_'+H; if (edgeKey.has(k)) return;
+      if (doors.some(d => (d.a===H && d.b===C) || (d.a===C && d.b===H))) return;
+      const gx = nodes[C].x-nodes[H].x, gy = nodes[C].y-nodes[H].y, gl = Math.hypot(gx, gy);
+      addEdge(H, C, true);
+      // altra faccia: il nodo appena oltre lo spessore dal lato della cerniera, e il suo corrispondente dal lato opposto
+      const H2 = adj[H].find(w => { const l = len(H, w); return l >= 0.05 && l <= 0.7 && Math.abs(((nodes[w].x-nodes[H].x)*gx + (nodes[w].y-nodes[H].y)*gy)/(l*gl)) < 0.25; });
+      if (H2!==undefined) {
+        const tx = nodes[C].x + nodes[H2].x-nodes[H].x, ty = nodes[C].y + nodes[H2].y-nodes[H].y, C2 = nearNode(tx, ty, 0.12);
+        if (C2 >= 0 && C2!==C && C2!==H2) addEdge(H2, C2, true);
+      }
+      doors.push({a:H, b:C, width:gl, thick:H2!==undefined ? len(H, H2) : 0.1});
+    });
+    // stipite che guarda un muro (varco tra l'estremita' di un muro e un muro che gli arriva di fronte)
+    const ray = (p, f, skip) => {
+      let best = null;
+      live().forEach(e => {
+        if (skip.has(e.a) || skip.has(e.b)) return;
+        const A = nodes[e.a], B = nodes[e.b], dx = B.x-A.x, dy = B.y-A.y, den = f[0]*dy - f[1]*dx;
+        if (Math.abs(den) < 1e-9) return;
+        const t = ((A.x-p[0])*dy - (A.y-p[1])*dx)/den, u = ((A.x-p[0])*f[1] - (A.y-p[1])*f[0])/den;
+        if (t > 0.02 && t < 1.6 && u > -0.001 && u < 1.001 && (!best || t < best.t)) best = {t, e, u, perp:Math.abs((dx*f[0]+dy*f[1])/Math.hypot(dx, dy))};
+      });
+      return best;
+    };
+    const target = h => {                                   // nodo sul muro colpito, spezzandolo se serve
+      const e = h.e, L = len(e.a, e.b);
+      if (h.u*L < EPS) return e.a; if ((1-h.u)*L < EPS) return e.b;
+      const A = nodes[e.a], B = nodes[e.b], m = nid(A.x+(B.x-A.x)*h.u, A.y+(B.y-A.y)*h.u);
+      e.dead = true; addEdge(e.a, m); addEdge(m, e.b); return m;
+    };
+    J.forEach((j, i) => {
+      if (used.has(i)) return;
+      const skip = new Set([j.a, j.b]);
+      const ha = ray([nodes[j.a].x, nodes[j.a].y], j.f, skip), hb = ray([nodes[j.b].x, nodes[j.b].y], j.f, skip);
+      if (!ha || !hb || ha.t < 0.45 || ha.t > 1.5 || Math.abs(ha.t-hb.t) > 0.03 || ha.perp > 0.06 || hb.perp > 0.06) return;
+      const na = target(ha), nb2 = target(hb);
+      if (na===nb2) return;
+      used.add(i); addEdge(j.a, na, true); addEdge(j.b, nb2, true);
+      doors.push({a:j.a, b:na, width:ha.t, thick:j.l});
+    });
+  }
+  // 5. facce del grafo: dentro = area positiva
+  const adj = adjOf();
+  const order = adj.map((nb, v) => nb.slice().sort((p, q) => Math.atan2(nodes[p].y-nodes[v].y, nodes[p].x-nodes[v].x) - Math.atan2(nodes[q].y-nodes[v].y, nodes[q].x-nodes[v].x)));
+  const seen = new Set(), faces = [];
+  for (let u=0; u<nodes.length; u++) for (const v0 of order[u]) {
+    if (seen.has(u+'>'+v0)) continue;
+    const cyc = []; let a = u, b = v0, guard = 0;
+    while (!seen.has(a+'>'+b) && guard++ < 100000) {
+      seen.add(a+'>'+b); cyc.push(a);
+      const o = order[b], pos = o.indexOf(a), w = o[(pos-1+o.length)%o.length];
+      a = b; b = w;
+    }
+    let ar = 0, per = 0; cyc.forEach((p, i) => { const q = cyc[(i+1)%cyc.length]; ar += nodes[p].x*nodes[q].y - nodes[q].x*nodes[p].y; per += len(p, q); });
+    faces.push({cyc, area:ar/2, per});
+  }
+  // componenti connesse (per riconoscere i pilastri isolati e il contorno)
+  const comp = new Array(nodes.length).fill(-1); let nc = 0;
+  for (let s=0; s<nodes.length; s++) { if (comp[s]>=0 || !adj[s].length) continue; const st = [s]; comp[s] = nc; while (st.length) { const v = st.pop(); adj[v].forEach(w => { if (comp[w]<0) { comp[w] = nc; st.push(w); } }); } nc++; }
+  const compEdges = new Array(nc).fill(0); live().forEach(e => compEdges[comp[e.a]]++);
+  const pip = (poly, x, y) => { let r = false; for (let i=0, j=poly.length-1; i<poly.length; j=i++) { const A = poly[i], B = poly[j]; if ((A.y>y)!==(B.y>y) && x < (B.x-A.x)*(y-A.y)/(B.y-A.y)+A.x) r = !r; } return r; };
+  const pos = faces.filter(f => f.area > 1e-4).map(f => Object.assign(f, {poly:f.cyc.map(i => nodes[i]), set:new Set(f.cyc)}));
+  pos.forEach(f => {                                  // quanto spazio occupano, dentro di loro, altre figure di altri pezzi del disegno
+    f.inside = 0;
+    pos.forEach(g => { if (g===f || g.area >= f.area) return; const v = g.cyc.find(i => !f.set.has(i)); if (v!==undefined && pip(f.poly, nodes[v].x, nodes[v].y) && comp[g.cyc[0]]!==comp[f.cyc[0]]) f.inside += g.area; });
+  });
+  const rooms = pos.filter(f => f.area >= 0.8 && f.area/f.per >= 0.18 && f.inside < 1.0 && !f.cyc.some((p, i) => { const q = f.cyc[(i+1)%f.cyc.length]; return false; }));
+  // 6. pilastri: quadrati chiusi isolati, 15-80 cm
+  const pil = [];
+  pos.forEach(f => {
+    if (compEdges[comp[f.cyc[0]]] > 8 || f.cyc.length > 6) return;
+    const xs = f.poly.map(p => p.x), ys = f.poly.map(p => p.y), w = Math.max(...xs)-Math.min(...xs), h = Math.max(...ys)-Math.min(...ys);
+    if (w >= 0.15 && w <= 0.8 && h >= 0.15 && h <= 0.8 && f.area >= 0.8*w*h) pil.push({x:Math.min(...xs), y:Math.max(...ys), w, h});
+  });
+  // 7. finestre: celle sottili chiuse dentro lo spessore del muro (anche divise in piu' strisce)
+  const cells = [];
+  pos.forEach(f => {
+    if (rooms.includes(f) || f.area < 0.01 || f.area >= 0.8 || compEdges[comp[f.cyc[0]]] <= 8) return;
+    if (f.cyc.some((p, i) => { const q = f.cyc[(i+1)%f.cyc.length]; return edges.some(e => e.bridge && ((e.a===p && e.b===q) || (e.a===q && e.b===p))); })) return;      // il varco di una porta
+    // lato lungo = direzione del muro
+    let ux = 1, uy = 0, bl = 0; f.cyc.forEach((p, i) => { const q = f.cyc[(i+1)%f.cyc.length], l = len(p, q); if (l > bl) { bl = l; ux = (nodes[q].x-nodes[p].x)/l; uy = (nodes[q].y-nodes[p].y)/l; } });
+    const us = f.poly.map(p => p.x*ux+p.y*uy), vs = f.poly.map(p => -p.x*uy+p.y*ux);
+    const u0 = Math.min(...us), u1 = Math.max(...us), v0 = Math.min(...vs), v1 = Math.max(...vs);
+    if (v1-v0 > 0.7 || u1-u0 < 0.3 || (u1-u0)/(v1-v0) < 1.2 || f.area < 0.8*(u1-u0)*(v1-v0)) return;
+    cells.push({ux, uy, u0, u1, v0, v1});
+  });
+  const wins = [];
+  cells.forEach(c => {
+    const g = wins.find(w => Math.abs(w.ux*c.ux+w.uy*c.uy) > 0.99 && Math.abs((w.v0+w.v1)/2 - ((c.v0+c.v1)/2)*(w.ux*c.ux+w.uy*c.uy)) < 0.5 &&
+      Math.min(w.u1, c.u1)-Math.max(w.u0, c.u0) > 0.7*Math.min(w.u1-w.u0, c.u1-c.u0));
+    if (g) { g.u0 = Math.min(g.u0, c.u0); g.u1 = Math.max(g.u1, c.u1); g.v0 = Math.min(g.v0, c.v0); g.v1 = Math.max(g.v1, c.v1); g.th.push(c.v1-c.v0); }
+    else wins.push({ux:c.ux, uy:c.uy, u0:c.u0, u1:c.u1, v0:c.v0, v1:c.v1, th:[c.v1-c.v0]});
+  });
+  // 8. contorno esterno: giro esterno del pezzo di disegno piu' grande
+  let ext = null;
+  faces.filter(f => f.area < -1e-4).forEach(f => { if (!ext || compEdges[comp[f.cyc[0]]] > compEdges[comp[ext.cyc[0]]]) ext = f; });
+  // 9. linee del risultato: bordi degli ambienti e del contorno, fusi quando sono in linea
+  const chains = (cycles) => {
+    const E = new Map(); cycles.forEach(c => c.forEach((p, i) => { const q = c[(i+1)%c.length]; if (p!==q) E.set(p<q ? p+'_'+q : q+'_'+p, [p, q]); }));
+    const deg = new Map(); E.forEach(([p, q]) => { deg.set(p, (deg.get(p)||0)+1); deg.set(q, (deg.get(q)||0)+1); });
+    const nb = new Map(); E.forEach(([p, q]) => { (nb.get(p) || nb.set(p, []).get(p)).push(q); (nb.get(q) || nb.set(q, []).get(q)).push(p); });
+    const straight = (p, v, q) => { const ax = nodes[v].x-nodes[p].x, ay = nodes[v].y-nodes[p].y, bx = nodes[q].x-nodes[v].x, by = nodes[q].y-nodes[v].y; return Math.abs(ax*by-ay*bx) < 0.004*Math.hypot(ax, ay)*Math.hypot(bx, by) && ax*bx+ay*by > 0; };
+    const keep = new Set(); deg.forEach((d, v) => { if (d!==2 || !straight(nb.get(v)[0], v, nb.get(v)[1])) keep.add(v); });
+    const out = [], done = new Set();
+    E.forEach(([p0, q0], k0) => {
+      if (done.has(k0)) return;
+      let a = p0, b = q0, prev = a, cur = b; const path = [a, b]; done.add(k0);
+      const grow = (from, to, front) => {
+        while (!keep.has(to)) { const nx = nb.get(to).find(w => w!==from); const k = to<nx ? to+'_'+nx : nx+'_'+to; if (done.has(k)) break; done.add(k); if (front) path.unshift(nx); else path.push(nx); from = to; to = nx; }
+      };
+      grow(prev, cur, false); grow(q0, p0, true);
+      out.push([path[0], path[path.length-1], path]);
+    });
+    return out;
+  };
+  return {nodes, edges, faces, rooms, ext, doors, wins, pil, chains, stat:{rooms:rooms.length, doors:doors.length, wins:wins.length, pil:pil.length, edges:live().length}};
+}
+
 // ── IMPORT DXF ───────────────────────────────────────────────
 // Solo DXF testo (nessun DWG: da AutoCAD si salva in DXF). Legge LINE, LWPOLYLINE e POLYLINE; chiede l'unita' del
 // disegno e i layer dei muri; disegna quei layer come base (1 cm/px, la precisione del CAD) e lancia la stessa
 // proposta di ambienti del ricalco, pronta da applicare.
 function dxfParse(txt) {
-  const L = txt.split(/\r?\n/), ents = [], skip = {};
+  const L = txt.split(/\r?\n/), ents = [], arcs = [], skip = {};
   let unit = null, sec = '', hv = '', cur = null, poly = null, last0 = '';
   const fin = () => {
     if (!cur) return;
     if (cur.t==='LINE') ents.push({layer:cur.layer, pts:[cur.p, cur.q], closed:false});
     else if (cur.t==='LWPOLYLINE') ents.push({layer:cur.layer, pts:cur.v, closed:!!(cur.f & 1)});
     else if (cur.t==='VERTEX' && poly) poly.v.push([cur.x, cur.y]);
+    else if (cur.t==='ARC') arcs.push({layer:cur.layer, x:cur.x, y:cur.y, r:cur.r, a0:cur.a0, a1:cur.a1});
     cur = null;
   };
   for (let i=0; i+1<L.length; i+=2) {
@@ -5783,6 +6033,7 @@ function dxfParse(txt) {
         else if (v==='LWPOLYLINE') cur = {t:v, layer:'0', v:[], f:0};
         else if (v==='POLYLINE') cur = poly = {t:v, layer:'0', v:[], f:0};
         else if (v==='VERTEX') cur = {t:v, x:0, y:0};
+        else if (v==='ARC') cur = {t:v, layer:'0', x:0, y:0, r:0, a0:0, a1:0};
         else if (v==='SEQEND') { if (poly) ents.push({layer:poly.layer, pts:poly.v, closed:!!(poly.f & 1)}); poly = null; }
         else skip[v] = (skip[v] || 0) + 1;
       }
@@ -5796,59 +6047,96 @@ function dxfParse(txt) {
     else if (cur.t==='LWPOLYLINE') { if (c===70) cur.f = parseInt(v, 10); else if (c===10) cur.v.push([n, 0]); else if (c===20 && cur.v.length) cur.v[cur.v.length-1][1] = n; }
     else if (cur.t==='POLYLINE') { if (c===70) cur.f = parseInt(v, 10); }
     else if (cur.t==='VERTEX') { if (c===10) cur.x = n; else if (c===20) cur.y = n; }
+    else if (cur.t==='ARC') { if (c===10) cur.x = n; else if (c===20) cur.y = n; else if (c===40) cur.r = n; else if (c===50) cur.a0 = n; else if (c===51) cur.a1 = n; }
   }
   fin();
-  return {ents, unit, skip};
+  return {ents, arcs, unit, skip};
 }
 function importDxf() { hideAllMenus(); const i = $id('file-dxf'); i.value = ''; i.click(); }
+// layer che non sono geometria (testi, quote, cornici, campiture): non entrano. Tutti gli altri si fondono in un'unica rete di linee
+const DXF_SKIP = /test|quot|dim|cartiglio|layout|campit|hatch|text/i;
 $id('file-dxf').addEventListener('change', async e => {
   const f = e.target.files && e.target.files[0]; if (!f) return;
   try {
     const txt = await f.text();
     if (/^AutoCAD Binary DXF/.test(txt)) { alert('DXF binario: salvalo da AutoCAD come DXF testo (ASCII) e riprova.'); return; }
     const d = dxfParse(txt);
-    if (!d.ents.length) { alert('Nel DXF non ho trovato linee o polilinee (LINE, LWPOLYLINE, POLYLINE).'); return; }
-    const lay = new Map();
-    d.ents.forEach(en => lay.set(en.layer, (lay.get(en.layer) || 0) + Math.max(1, en.pts.length - 1)));
-    const names = [...lay.keys()].sort(), wallRe = /mur|wall|perim|tamp|parete|pareti/i;
-    const guess = names.filter(k => wallRe.test(k)), on = new Set(guess.length ? guess : names);
-    let a0 = 1e18, b0 = -1e18; d.ents.forEach(en => en.pts.forEach(p => { a0 = Math.min(a0, p[0]); b0 = Math.max(b0, p[0]); }));
+    const ents = d.ents.filter(en => !DXF_SKIP.test(en.layer));
+    if (!ents.length) { alert('Nel DXF non ho trovato linee o polilinee (LINE, LWPOLYLINE, POLYLINE).'); return; }
+    let a0 = 1e18, b0 = -1e18; ents.forEach(en => en.pts.forEach(p => { a0 = Math.min(a0, p[0]); b0 = Math.max(b0, p[0]); }));
     const spread = b0 - a0;
     const u0 = {4:'0.001', 5:'0.01', 6:'1'}[d.unit] || (spread < 100 ? '1' : spread < 10000 ? '0.01' : '0.001');
-    const fields = [{label:'Unità del disegno', id:'u', type:'select', value:u0, options:[{value:'1', label:'Metri'}, {value:'0.01', label:'Centimetri'}, {value:'0.001', label:'Millimetri'}]},
-      {type:'head', label:'Layer dei muri'}].concat(names.map((k,j) => ({label:k+' ('+lay.get(k)+' linee)', id:'l'+j, type:'check', value:on.has(k) ? '1' : ''})));
-    const nSk = Object.keys(d.skip).filter(k => /^(ARC|CIRCLE|INSERT|SPLINE|ELLIPSE|HATCH)$/.test(k)).map(k => k+' '+d.skip[k]).join(', ');
-    askDialog('Importa DXF', fields, 'Spunta solo i layer dei muri: quote, arredi e testi falserebbero gli ambienti.'+(nSk ? ' Non letti: '+nSk+'.' : ''), v => {
-      const k = parseFloat(v.u), pick = new Set(names.filter((_,j) => v['l'+j]));
-      if (!pick.size) { setTip('Nessun layer spuntato.'); return; }
-      const segs = []; let minX = 1e18, minY = 1e18, maxX = -1e18, maxY = -1e18;
-      d.ents.forEach(en => {
-        if (!pick.has(en.layer)) return;
+    const fields = [{label:'Unità del disegno', id:'u', type:'select', value:u0, options:[{value:'1', label:'Metri'}, {value:'0.01', label:'Centimetri'}, {value:'0.001', label:'Millimetri'}]}];
+    askDialog('Importa DXF', fields, 'Tutti i layer si fondono: testi, quote e cornici vengono ignorati. Gli ambienti, le porte, le finestre e i pilastri li trova l\'app.', v => {
+      const k = parseFloat(v.u), segs = []; let minX = 1e18, minY = 1e18, maxX = -1e18, maxY = -1e18;
+      ents.forEach(en => {
         const P = en.pts.map(p => [p[0]*k, p[1]*k]), m = en.closed ? P.length : P.length - 1;
-        for (let i=0; i<m; i++) { const a = P[i], b = P[(i+1)%P.length]; if (Math.hypot(b[0]-a[0], b[1]-a[1]) < 0.002) continue; segs.push([a, b]); }
+        for (let i=0; i<m; i++) { const a = P[i], b = P[(i+1)%P.length]; if (Math.hypot(b[0]-a[0], b[1]-a[1]) < 0.002) continue; segs.push([a[0], a[1], b[0], b[1]]); }
         P.forEach(p => { minX = Math.min(minX, p[0]); maxX = Math.max(maxX, p[0]); minY = Math.min(minY, p[1]); maxY = Math.max(maxY, p[1]); });
       });
-      if (!segs.length) { setTip('I layer scelti non hanno linee.'); return; }
+      if (!segs.length) { setTip('Nel DXF non ci sono linee.'); return; }
       const mg = 0.5, wm = maxX-minX+2*mg, hm = maxY-minY+2*mg;
       let mpp = 0.01; while (wm/mpp*(hm/mpp) > 2.5e7 && mpp < 0.05) mpp += 0.005;
       const w = Math.ceil(wm/mpp), h = Math.ceil(hm/mpp);
-      if (w > 12000 || h > 12000) { alert('Disegno troppo esteso: '+wm.toFixed(0)+' x '+hm.toFixed(0)+' m. Controlla l\'unità o i layer.'); return; }
+      if (w > 12000 || h > 12000) { alert('Disegno troppo esteso: '+wm.toFixed(0)+' x '+hm.toFixed(0)+' m. Controlla l\'unità.'); return; }
+      const ox = minX - mg, oy = minY - mg;                                 // origine del rilievo = angolo in basso a sinistra del disegno
+      const rel = segs.map(s => [s[0]-ox, s[1]-oy, s[2]-ox, s[3]-oy]);
+      // base: le stesse linee, per confrontare (1 cm/px)
       const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
       const cx = cv.getContext('2d', {willReadFrequently:true}); cx.strokeStyle = '#000'; cx.lineWidth = 2; cx.lineCap = 'round';
-      cx.beginPath(); segs.forEach(([a,b]) => { cx.moveTo((a[0]-minX+mg)/mpp, (maxY-a[1]+mg)/mpp); cx.lineTo((b[0]-minX+mg)/mpp, (maxY-b[1]+mg)/mpp); }); cx.stroke();
+      cx.beginPath(); rel.forEach(s => { cx.moveTo(s[0]/mpp, (hm-s[1])/mpp); cx.lineTo(s[2]/mpp, (hm-s[3])/mpp); }); cx.stroke();
       const px = cx.getImageData(0, 0, w, h).data, mask = new Uint8Array(w*h);
       for (let i=0; i<mask.length; i++) mask[i] = px[i*4+3] > 100 ? 1 : 0;
-      const u = {mask, w, h, mpp, x:0, y:h*mpp, alpha:0.6, visible:true};
+      const u = {mask, w, h, mpp, x:0, y:hm, alpha:0.6, visible:true};
       buildUnderlayView(u);
+      const arcs = d.arcs.filter(a => !DXF_SKIP.test(a.layer)).map(a => ({x:a.x*k-ox, y:a.y*k-oy, r:a.r*k, a0:a.a0, a1:a.a1}));
+      const t0 = performance.now();
+      u.vec = dxfPrev(dxfPlan(rel, arcs));
+      u.vec.ms = Math.round(performance.now() - t0);
       state.underlay = u; state.wallsPrev = null; state.moveBase = false;
       refreshBasePanel(); fitUnderlay();
       setTimeout(() => { try { underlayCorners(); } catch (er) {} }, 400);
       if (prog()) { setTip('DXF importato come base. Il ricalco crea il rilievo: si fa nello Stato di fatto.'); return; }
       wallsOpen();
-      setTip('DXF importato ('+segs.length+' linee). Gli ambienti trovati sono in arancione: controlla e premi Applica.');
+      const skipped = d.ents.length - ents.length;
+      setTip('DXF importato: ambienti, porte (rosso), finestre (blu) e pilastri (verde) proposti. Controlla e premi Applica.'+(skipped ? ' Ignorati '+skipped+' elementi di testi e cornici.' : ''));
     });
   } catch (err) { alert('Import DXF non riuscito: '+err.message); }
 });
+// risultato del motore -> anteprima del ricalco (stesso formato: nodi, linee, ambienti) piu' porte, finestre e pilastri
+function dxfPrev(P) {
+  const nodes = [], idOf = new Map();
+  const nd = i => { let v = idOf.get(i); if (v===undefined) { v = nodes.length; idOf.set(i, v); nodes.push({x:P.nodes[i].x, y:P.nodes[i].y}); } return v; };
+  const roomCyc = P.rooms.map(f => f.cyc), rch = P.chains(roomCyc), segs = [], geo = [];
+  const ends = new Set(); rch.forEach(c => { ends.add(c[0]); ends.add(c[1]); });
+  rch.forEach(c => { segs.push([nd(c[0]), nd(c[1])]); geo.push([P.nodes[c[0]], P.nodes[c[1]]]); });
+  const rooms = roomCyc.map(cyc => ({ring:cyc.filter(i => ends.has(i)).map(nd)})).filter(r => r.ring.length >= 3);
+  const extStart = segs.length;
+  if (P.ext) P.chains([P.ext.cyc]).forEach(c => { segs.push([nd(c[0]), nd(c[1])]); geo.push([P.nodes[c[0]], P.nodes[c[1]]]); });
+  // serramenti: sul lato (ambiente o contorno) piu' vicino e parallelo
+  const ops = [];
+  const place = (type, cx, cy, ux, uy, width, tol) => {
+    let best = null;
+    geo.forEach(([A, B], k) => {
+      const dx = B.x-A.x, dy = B.y-A.y, L = Math.hypot(dx, dy); if (L < 0.2) return;
+      if (Math.abs((dx*uy - dy*ux)/L) > 0.05) return;
+      const t = ((cx-A.x)*dx + (cy-A.y)*dy)/(L*L), dist = Math.abs(((cx-A.x)*dy - (cy-A.y)*dx)/L);
+      if (t < 0 || t > 1 || dist > tol || (best && dist >= best.dist - 1e-6)) return;
+      best = {k, t, dist, L};
+    });
+    if (!best) return;
+    ops.push({type, k:best.k, t:best.t, width:Math.min(width, best.L*0.95), cx, cy, ux, uy});
+  };
+  P.doors.forEach(dr => { const a = P.nodes[dr.a], b = P.nodes[dr.b], l = Math.hypot(b.x-a.x, b.y-a.y) || 1; place('P', (a.x+b.x)/2, (a.y+b.y)/2, (b.x-a.x)/l, (b.y-a.y)/l, dr.width, 0.04); });
+  const th = [];
+  P.wins.forEach(w => {
+    const cu = (w.u0+w.u1)/2, cv = (w.v0+w.v1)/2, cx = cu*w.ux - cv*w.uy, cy = cu*w.uy + cv*w.ux;
+    th.push(w.v1-w.v0); place('F', cx, cy, w.ux, w.uy, w.u1-w.u0, (w.v1-w.v0)/2+0.08);
+  });
+  th.sort((a, b) => a-b);
+  const wallT = th.length ? Math.max(0.10, Math.round(th[Math.floor(th.length/2)]*20)/20) : null;
+  return {nodes, segs, rooms, extStart, wallT, ops, pil:P.pil, vec:true, stat:P.stat};
+}
 
 function impConfirm() {
   if (!imp.src) return;
@@ -5883,6 +6171,13 @@ function wallsSchedule() {
 }
 function wallsRun() {
   const u = state.underlay; if (!u) return;
+  document.querySelectorAll('.wp-raster').forEach(el => { el.style.display = u.vec ? 'none' : ''; });          // i cursori servono solo al ricalco da immagine
+  if (u.vec) {
+    state.wallsPrev = u.vec;
+    const nD = u.vec.ops.filter(o => o.type==='P').length, nF = u.vec.ops.length - nD;
+    $id('walls-count').textContent = u.vec.rooms.length+' ambienti, '+nD+' porte, '+nF+' finestre, '+u.vec.pil.length+' pilastri ('+u.vec.ms+' ms)';
+    draw(); return;
+  }
   const lev = ROOM_LEVELS[+$id('w-lev').value] || ROOM_LEVELS[3];
   const o = Object.assign({ doorM: +$id('w-door').value/100, jogM: lev.simplM*1.2 }, lev);
   ['door','lev'].forEach(k => $id('w-'+k+'-v').textContent = $id('w-'+k).value);
@@ -5904,7 +6199,13 @@ function wallsApply() {
   saveHistory();
   const base = state.points.length, s0 = state.segments.length, h = lastAmbH();
   P.nodes.forEach(n => newPoint(n.x, n.y));
-  P.segs.forEach(([a,b],k) => { if (!segExists(base+a, base+b)) state.segments.push(k>=(P.extStart??1e9) ? {a:base+a, b:base+b, layer:'MURI_EST'} : {a:base+a, b:base+b}); });
+  const segOf = [];
+  P.segs.forEach(([a,b],k) => {
+    const ex = state.segments.findIndex(s => (s.a===base+a && s.b===base+b) || (s.a===base+b && s.b===base+a));
+    if (ex >= 0) { segOf[k] = ex; return; }
+    state.segments.push(k>=(P.extStart??1e9) ? {a:base+a, b:base+b, layer:'MURI_EST'} : {a:base+a, b:base+b});
+    segOf[k] = state.segments.length-1;
+  });
   (P.rooms||[]).forEach(r => {
     const idx = r.ring.map(id => base+id);
     const n = state.ambienti.length;
@@ -5912,9 +6213,17 @@ function wallsApply() {
   });
   // muri esterni: spessore letto dal disegno muro per muro, tipo proposto (WALL_TYPES) da validare
   classifyExtWalls(state.segments.map((_,k) => k).filter(k => k >= s0), P.wallT);
+  // DXF: porte, finestre e pilastri trovati nel disegno
+  (P.ops||[]).forEach(o => {
+    const D = OPENING_DEF[o.type], width = +o.width.toFixed(2), len = segLength(segOf[o.k]), hw = width/len/2;
+    state.openings.push({type:o.type, segIdx:segOf[o.k], t:Math.min(Math.max(o.t, hw), 1-hw), width, hb:D.hb, h0:D.h0, spessore:0, label:nextOpeningLabel(o.type)});
+    classifyByOpening(state.openings.length-1);
+  });
+  (P.pil||[]).forEach(q => { state.pilastroCounter++; state.pilastri.push({x:q.x, y:q.y, w:q.w, h:q.h, label:'PIL'+String(state.pilastroCounter).padStart(2,'0')}); });
   const nR = (P.rooms||[]).length, nd = state.segments.filter(g => g.cv==='dubbio').length;
   state.wallsPrev = null; state.moveBase = false; $id('walls-panel').classList.remove('show'); $id('base-panel').classList.remove('show');   // piu' spazio per lavorare; si riapre da File
-  commit('Aggiunti '+nR+' ambienti ('+P.segs.length+' linee). Muri fucsia tratteggiati = non assegnati, tipo proposto da validare ('+nd+'): inserendo le finestre si decidono da soli.');
+  const nOp = (P.ops||[]).length, nPil = (P.pil||[]).length;
+  commit('Aggiunti '+nR+' ambienti ('+P.segs.length+' linee)'+(nOp || nPil ? ', '+nOp+' serramenti e '+nPil+' pilastri trovati nel disegno: controllali' : '')+'. Muri fucsia tratteggiati = non assegnati, tipo proposto da validare ('+nd+'): inserendo le finestre si decidono da soli.');
 }
 
 // salvataggio della base dentro il progetto .json
@@ -6216,8 +6525,8 @@ else {
 //  WEBAPP INSTALLABILE (solo se servita da internet, non da file locale)
 // ═══════════════════════════════════════════════════════════
 // versione e novita' vengono scritte da pubblica_app.py leggendo la prima voce di CHANGELOG.md
-const APP_VERSION = '2.08';
-const APP_NOTE = ["Importa DXF (menu File): chiede l'unità del disegno, mostra i layer e tu spunti quelli dei muri; il disegno diventa la base in scala esatta e l'app propone da sola gli ambienti, da controllare e applicare. Solo DXF testo (niente DWG: da AutoCAD si salva in DXF)", "Tabelle sempre in A4 verticale: se le colonne non ci stanno, le celle lunghe vanno su due righe e solo in ultimo scende il corpo. La planimetria resta orizzontale solo se la zona è più larga che alta", "Serramenti: nuova colonna \"Ambiente\" (una porta tra due stanze ne indica due)", "Ambienti: dopo la tabella, schema delle aperture per ogni ambiente con ogni serramento contato numerato e il suo elenco", "Planimetria esportata: ogni classe di muro ha il suo colore oltre al tratteggio (interno blu, esterno viola, altre unità verde, non riscaldati arancio, non assegnati fucsia), anche nei layer del DXF; porta anche \"Aggiornato il [data]\"", "Esportazione del confronto Stato di fatto e Progetto: le tabelle identiche si stampano una volta sola (\"invariato\"); nuova tabella \"Riepilogo variazioni\" con ambienti e serramenti demoliti, nuovi o sostituiti, misure e totale aree", "Menu Disegna riordinato per finalità (disegna, muro, posiziona e misura, copia) e tolti i comandi doppi (Incolla, Copia)", "Esc riporta sempre a Seleziona e annulla l'operazione in corso"];
+const APP_VERSION = '2.09';
+const APP_NOTE = ["Importa DXF rifatto: niente più scelta dei layer, si fondono tutti (testi, quote e cornici sono ignorati) e resta solo la domanda sull'unità. L'app lavora sulle linee esatte del CAD, senza passare da un'immagine: ambienti con le misure vere, contorno esterno, porte, finestre e pilastri trovati nel disegno", "Porte: i varchi si chiudono da soli (stipiti uno di fronte all'altro, stipite contro un muro, muri che finiscono liberi, arco di apertura) e diventano porte della larghezza misurata. Finestre: le celle chiuse dentro lo spessore del muro. Pilastri: i quadrati isolati. Nell'anteprima porte in rosso, finestre in blu, pilastri in verde: se qualcosa è sbagliato lo correggi dopo, come un normale serramento", "Nell'import DXF i due cursori del ricalco non servono e spariscono: restano per il ricalco da PDF e immagini"];
 const IS_LOCAL = APP_VERSION.startsWith('__');
 document.getElementById('menu-version').textContent = IS_LOCAL ? 'Versione locale' : 'ℹ Versione '+APP_VERSION+' - novità';
 // finestra con un elenco puntato (novita', note di aggiornamento del progetto); extra = secondo elenco con titoletto
