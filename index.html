@@ -250,7 +250,7 @@
   <div class="menu-item tool-item" id="ti-pencil" onclick="pickTool('pencil')"><span class="ti">✏</span><span class="tt"><b>Matita</b><small>Disegno a mano libera</small></span></div>
 </div>
 <div id="file-submenu" class="floating-menu">
-  <div class="menu-item" id="fm-import-dxf" onclick="importDxf()">📐 Importa DXF<small class="md">Planimetria da CAD: unità, layer dei muri, gli ambienti li trova l'app</small></div>
+  <div class="menu-item" id="fm-import-dxf" onclick="importDxf()">📐 Importa DXF<small class="md">Planimetria da CAD: scegli l'unità, ambienti, porte, finestre e pilastri li trova l'app</small></div>
   <div class="menu-item" id="fm-import" onclick="importPlan()">🗺 Importa planimetria (PDF/JPG)<small class="md">La catastale come base su cui ricalcare</small></div>
   <div class="menu-item" id="fm-photo" onclick="photoPlan()">📷 Fotografa planimetria<small class="md">Il foglio di carta: lo raddrizzi e lo metti in scala</small></div>
   <div class="menu-item" onclick="toggleBasePanel()">🗺 Mostra/nascondi pannello base<small class="md">Trasparenza della base e Ricalca ambienti</small></div>
@@ -513,13 +513,13 @@ const state = {
 //  TAVOLOZZA (schermo scuro / stampa su bianco), QUOTE, SCALE
 // ═══════════════════════════════════════════════════════════
 const COL_SCREEN = {
-  wall:'#4a9eff', wallExt:'#b58cff', wallCom:'#3ddc84', wallNr:'#19c6b0', wallNd:'#ff4fd8', wallGr:'#7d879a', quota:'#ffe066', quotaOk:'#5ef38c', lead:'#8aa0c0',
+  wall:'#4a9eff', wallExt:'#b58cff', wallCom:'#3ddc84', wallNr:'#c98a5a', wallNd:'#ff4fd8', wallGr:'#7d879a', quota:'#ffe066', quotaOk:'#5ef38c', lead:'#8aa0c0',
   win:'#00e5ff', door:'#ff9944', pf:'#aaff44',
   ambName:'#fff', ambArea:'#ffe066', ambH:'#fff', ambVol:'#aaddff', label:'#ffe066',
   stair:'#7aa8d0', stairArrow:'#cfe6ff',
 };
 const COL_PRINT = {
-  wall:'#1a5fd0', wallExt:'#7b2cbf', wallCom:'#0f9d58', wallNr:'#0f9d8a', wallNd:'#e0189f', wallGr:'#9aa3ad', quota:'#828282', quotaOk:'#828282', lead:'#666',
+  wall:'#1a5fd0', wallExt:'#7b2cbf', wallCom:'#0f9d58', wallNr:'#8a5a2b', wallNd:'#e0189f', wallGr:'#9aa3ad', quota:'#828282', quotaOk:'#828282', lead:'#666',
   win:'#0a2a8a', door:'#6b3a10', pf:'#0a2a8a',
   ambName:'#000', ambArea:'#000', ambH:'#222', ambVol:'#222', label:'#000',
   stair:'#333', stairArrow:'#000',
@@ -1444,7 +1444,7 @@ const WALL_TYPES = [
   {value:'',            label:'Interno - ripartizione, demolibile (blu)'},
   {value:'perimetrale', label:'Esterno (viola) - 100% fino a 50 cm'},
   {value:'comunione',   label:'Verso altre unità riscaldate (verde) - 50%, fino a 25 cm'},
-  {value:'nonrisc',     label:'Verso non riscaldati o vano scala (turchese) - 50%, fino a 25 cm'},
+  {value:'nonrisc',     label:'Verso non riscaldati o vano scala (marrone) - 50%, fino a 25 cm'},
 ];
 // una sola definizione per classe: nome breve, colore a video (chiave di C), tratto e spessore in stampa (mm)
 const WALL_STYLE = {
@@ -6622,8 +6622,8 @@ else {
 //  WEBAPP INSTALLABILE (solo se servita da internet, non da file locale)
 // ═══════════════════════════════════════════════════════════
 // versione e novita' vengono scritte da pubblica_app.py leggendo la prima voce di CHANGELOG.md
-const APP_VERSION = '2.11';
-const APP_NOTE = ["Importa DXF: le finestre si cercano solo sui muri esterni (niente più finestre false nel vano scala, gradini e segni); porte e pilastri restano proposti, da controllare", "Anteprima del ricalco (DXF, PDF e immagini): elenco degli ambienti trovati con la superficie e una casella per ciascuno. Togli la spunta a quelli che non servono: non vengono creati, e nemmeno le linee e i punti che servivano solo a loro", "Unisci con un altro ambiente (menu dell'ambiente): tocchi l'altro ambiente e i due diventano uno, se hanno un lato in comune; si annulla con un passo", "Giallo = demolizione, rosso = costruzione, ovunque: legenda, tabella Demolizioni e costruzioni, Riepilogo variazioni (un serramento rifatto sono due righe, una demolizione e una costruzione), messaggi e guida. Il tipo di muro \"verso non riscaldati o vano scala\" passa da giallo a turchese, per non confondersi con le demolizioni. Nell'anteprima DXF le porte sono arancione e le finestre azzurre"];
+const APP_VERSION = '2.12';
+const APP_NOTE = ["Il tipo di muro \"verso non riscaldati o vano scala\" passa da turchese a marrone: il turchese si confondeva con il verde delle altre unità riscaldate", "Testo del menu \"Importa DXF\" aggiornato: non c'è più la scelta dei layer"];
 const IS_LOCAL = APP_VERSION.startsWith('__');
 document.getElementById('menu-version').textContent = IS_LOCAL ? 'Versione locale' : 'ℹ Versione '+APP_VERSION+' - novità';
 // finestra con un elenco puntato (novita', note di aggiornamento del progetto); extra = secondo elenco con titoletto
