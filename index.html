@@ -313,6 +313,7 @@
   <div class="menu-item" data-lock onclick="ambMenuAction('edit')">✎ Modifica ambiente<small class="md">Nome, altezza e categoria; mostra superficie e pareti</small></div>
   <div class="menu-item" onclick="ambMenuAction('copy')">⎘ Copia ambiente<small class="md">Contorno, serramenti e dati: poi Incolla, per fare una variante</small></div>
   <div class="menu-item" onclick="ambMenuAction('inherit')">🖌 Eredita proprietà<small class="md">Copia categoria e altezza su altri ambienti</small></div>
+  <div class="menu-item" data-lock onclick="ambMenuAction('merge')">⊕ Unisci con un altro ambiente<small class="md">Tocca l'altro: diventano uno, se hanno un lato in comune</small></div>
   <div class="menu-item" data-lock onclick="ambMenuAction('delete')">🗑 Elimina solo l'ambiente<small class="md">Le linee restano</small></div>
   <div class="menu-item" data-lock onclick="ambMenuAction('deleteall')">🗑 Elimina ambiente e sue linee<small class="md">Anche i muri che non servono ad altri ambienti</small></div>
 </div>
@@ -384,6 +385,7 @@
   <div class="row wp-raster"><span>Semplificazione (1 dettaglio - 5 poche linee)</span><b id="w-lev-v">3</b></div>
   <input class="wp-raster" type="range" id="w-lev" min="1" max="5" step="1" value="3" oninput="wallsSchedule()">
   <div id="walls-count" style="color:#ffe066"></div>
+  <div id="walls-list" style="max-height:170px;overflow:auto;margin:6px 0;font-size:13px"></div>
   <div class="row"><button class="ok" id="walls-apply" onclick="wallsApply()">✔ Applica al disegno</button><button onclick="wallsClose()">Chiudi</button></div>
 </div>
 
@@ -511,13 +513,13 @@ const state = {
 //  TAVOLOZZA (schermo scuro / stampa su bianco), QUOTE, SCALE
 // ═══════════════════════════════════════════════════════════
 const COL_SCREEN = {
-  wall:'#4a9eff', wallExt:'#b58cff', wallCom:'#3ddc84', wallNr:'#e6b800', wallNd:'#ff4fd8', wallGr:'#7d879a', quota:'#ffe066', quotaOk:'#5ef38c', lead:'#8aa0c0',
+  wall:'#4a9eff', wallExt:'#b58cff', wallCom:'#3ddc84', wallNr:'#19c6b0', wallNd:'#ff4fd8', wallGr:'#7d879a', quota:'#ffe066', quotaOk:'#5ef38c', lead:'#8aa0c0',
   win:'#00e5ff', door:'#ff9944', pf:'#aaff44',
   ambName:'#fff', ambArea:'#ffe066', ambH:'#fff', ambVol:'#aaddff', label:'#ffe066',
   stair:'#7aa8d0', stairArrow:'#cfe6ff',
 };
 const COL_PRINT = {
-  wall:'#1a5fd0', wallExt:'#7b2cbf', wallCom:'#0f9d58', wallNr:'#d98a00', wallNd:'#e0189f', wallGr:'#9aa3ad', quota:'#828282', quotaOk:'#828282', lead:'#666',
+  wall:'#1a5fd0', wallExt:'#7b2cbf', wallCom:'#0f9d58', wallNr:'#0f9d8a', wallNd:'#e0189f', wallGr:'#9aa3ad', quota:'#828282', quotaOk:'#828282', lead:'#666',
   win:'#0a2a8a', door:'#6b3a10', pf:'#0a2a8a',
   ambName:'#000', ambArea:'#000', ambH:'#222', ambVol:'#222', label:'#000',
   stair:'#333', stairArrow:'#000',
@@ -1442,7 +1444,7 @@ const WALL_TYPES = [
   {value:'',            label:'Interno - ripartizione, demolibile (blu)'},
   {value:'perimetrale', label:'Esterno (viola) - 100% fino a 50 cm'},
   {value:'comunione',   label:'Verso altre unità riscaldate (verde) - 50%, fino a 25 cm'},
-  {value:'nonrisc',     label:'Verso non riscaldati o vano scala (giallo) - 50%, fino a 25 cm'},
+  {value:'nonrisc',     label:'Verso non riscaldati o vano scala (turchese) - 50%, fino a 25 cm'},
 ];
 // una sola definizione per classe: nome breve, colore a video (chiave di C), tratto e spessore in stampa (mm)
 const WALL_STYLE = {
@@ -1499,7 +1501,7 @@ function toggleView() {
   state.view = prog() ? 'sdf' : 'prog';
   setTool('select'); state.sel = null;
   updateViewUI();
-  commit(prog() ? 'Progetto: tocca un muro o un serramento esistente per demolirlo (giallo), disegna il nuovo (rosso).' : 'Stato di fatto: il rilievo com\'è oggi.', true);
+  commit(prog() ? 'Progetto: tocca un muro o un serramento esistente per la demolizione (giallo), disegna le costruzioni (rosso).' : 'Stato di fatto: il rilievo com\'è oggi.', true);
 }
 function updateViewUI() {
   document.body.classList.toggle('prog', prog());
@@ -1627,6 +1629,7 @@ function ambMenuAction(action) {
   if (action==='copy') { const H = ambHighlight(s.idx); clipCopy(new Set(), H ? H.edges : new Set(), new Set(), new Set([s.idx])); return; }
   if (action==='copy') { const H = ambHighlight(s.idx); clipCopy(new Set(), H ? H.edges : new Set(), new Set(), new Set([s.idx])); return; }
   if (action==='inherit') { inheritStart('ambiente', s.idx); return; }
+  if (action==='merge') { state.merge = {from:s.idx}; setTip('Tocca l\'ambiente da unire a "'+amb.name+'". Esc per annullare.'); draw(); return; }
   if (action==='delete') { saveHistory(); state.ambienti.splice(s.idx,1); state.sel=null; commit('Ambiente eliminato (le linee restano).'); return; }
   if (action==='deleteall') {
     saveHistory();
@@ -2000,7 +2003,7 @@ function setTool(t) {
   resetTril();
   state.wallOrigin=null; state.wallPreview=null; state.wallSnapAngle=null; state.wallSnapPoint=null;
   state.openingDrag=null; state.drag=null; state.rectDraw=null; state.roomDraw=null; state.selBox=null; state.selSet=null; state.selOpen=null; state.selSeg=null; state.selPen=null;
-  state.multi=false; state.moveSel=false; state.roomPts=null; state.inherit=null;
+  state.multi=false; state.moveSel=false; state.roomPts=null; state.inherit=null; state.merge=null;
   state.moveBase=false; state.handMode=false;       // cambiare strumento chiude lo spostamento della base e la mano: altrimenti ogni tocco li ripete
   if (state.pencilCurrent) {
     if (state.pencilCurrent.pts.length>1) { saveHistory(); state.pencilLines.push(state.pencilCurrent); }
@@ -2429,9 +2432,9 @@ function insertOpening(segIdx, t) {
   const len = segLength(segIdx), g = state.segments[segIdx];
   // nel Progetto, su un muro esistente: niente serramenti sui muri demoliti; sui muri non demolibili solo al posto di uno demolito
   if (locked(g)) {
-    if (g.fase==='demo') { setTip('Muro demolito: il serramento va su un muro che resta o su uno nuovo.'); return; }
+    if (g.fase==='demo') { setTip('Muro in demolizione: il serramento va su un muro che resta o su una costruzione.'); return; }
     const swap = demoAt(segIdx, t), b = demoBlock(g);
-    if (b && !swap) { setTip(b+' Per sostituire un serramento demolisci quello esistente e inserisci il nuovo nello stesso punto.'); return; }
+    if (b && !swap) { setTip(b+' Per rifare un serramento: demolisci quello esistente (giallo) e inserisci la costruzione nello stesso punto (rosso).'); return; }
   }
   const D = OPENING_DEF[type], width = +Math.min(D.width, len*0.9).toFixed(2), hw = width/len/2;
   saveHistory();
@@ -2822,7 +2825,7 @@ function setWallLength(si, m) {
   });
   g.ok = true; g.okLen = m;
   commit('Muro '+A.label+' - '+B.label+' = '+m.toFixed(2)+' m, validato.'+
-         (lost ? ' Attenzione: '+lost+(lost===1?' muro già validato è cambiato':' muri già validati sono cambiati')+' di oltre 1 cm e tornano gialli.' : ''));
+         (lost ? ' Attenzione: '+lost+(lost===1?' muro già validato è cambiato':' muri già validati sono cambiati')+' di oltre 1 cm e tornano da validare (fucsia).' : ''));
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -3114,8 +3117,33 @@ function closePhoto(){ document.getElementById('photo-viewer').classList.remove(
 // ═══════════════════════════════════════════════════════════
 //  CLICK (un solo punto di ingresso per mouse e touch)
 // ═══════════════════════════════════════════════════════════
+// unione di due ambienti: i lati in comune (stessi punti, percorsi in senso opposto) si annullano e resta il contorno unico
+function mergeAmbienti(i, j) {
+  const A = state.ambienti[i], B = state.ambienti[j]; if (!A || !B || i===j) return;
+  if (locked(A) || locked(B)) { lockTip(); return; }
+  const sa = ring => ring.reduce((t, id, k) => { const p = state.points[id], q = state.points[ring[(k+1)%ring.length]]; return t + p.x*q.y - q.x*p.y; }, 0);
+  const ra = A.indices.slice(), rb = B.indices.slice(); if (sa(ra)*sa(rb) < 0) rb.reverse();            // stesso verso di percorrenza
+  const E = new Map(); const add = ring => ring.forEach((a, k) => { const b = ring[(k+1)%ring.length]; E.set(a+'>'+b, [a, b]); });
+  add(ra); let shared = 0;
+  rb.forEach((a, k) => { const b = rb[(k+1)%rb.length]; if (E.has(b+'>'+a)) { E.delete(b+'>'+a); shared++; } else E.set(a+'>'+b, [a, b]); });
+  if (!shared) { setTip('I due ambienti non hanno un lato in comune (stessi punti): usa "Ambiente da punti" sul contorno unico.'); return; }
+  const next = new Map(); let ok = true; E.forEach(([a, b]) => { if (next.has(a)) ok = false; next.set(a, b); });
+  const start = [...next.keys()][0], ring = [start]; let cur = next.get(start);
+  while (ok && cur!==undefined && cur!==start && ring.length <= E.size) { ring.push(cur); cur = next.get(cur); }
+  if (!ok || cur!==start || ring.length !== E.size) { setTip('Unione non possibile: il contorno risultante non è un unico giro. Usa "Ambiente da punti".'); return; }
+  saveHistory();
+  A.indices = ring; state.ambienti.splice(j, 1); state.sel = null;
+  commit('Ambienti uniti in "'+A.name+'": '+ambNet(A).toFixed(2)+' m². Il lato in comune resta come linea: eliminala se non è un muro.');
+}
+function mergeTap(sx, sy) {
+  const M = state.merge; if (!M) return false;
+  const a = hitAmbiente(sx, sy); state.merge = null;
+  if (a===null || a===M.from) { setTip('Unione annullata.'); draw(); return true; }
+  mergeAmbienti(M.from, a); return true;
+}
 function handleClick(sx, sy, clientX, clientY, shift) {
   hideAllMenus();
+  if (mergeTap(sx, sy)) return;
   if (inheritTap(sx, sy)) return;
   state.tapW = s2w(sx, sy);                    // dove compare la barra se da qui parte una selezione multipla
 
@@ -3626,6 +3654,7 @@ document.addEventListener('keydown', e => {
   if (e.key==='Escape') {
     if (typing) return;                       // il dialog gestisce l'ESC per conto suo
     if (state.exp) { expCancel(); return; }
+    if (state.merge) { state.merge = null; setTip('Unione annullata.'); draw(); return; }
     if (state.inherit) { inheritEnd('Eredita proprietà finita.'); return; }
     if (state.tool==='paste') { setTool('select'); setTip('Incolla annullato.'); return; }
     if (state.pending || state.trilStep || state.circles.length) { resetTril(); setTip('Trilaterazione annullata.'); }
@@ -3725,7 +3754,7 @@ const MIGRATIONS = [
   }},
   { fmt:3, ver:'2.04', run:o => {
     FASE_KEYS.forEach(k => (o[k]||[]).forEach(el => { if (!el.fase) el.fase = 'es'; }));   // tutto quello che c'era e' il rilievo
-    return ['Nuovo: Stato di fatto e Progetto. Il disegno che hai è lo stato di fatto; il Progetto (demolizioni in giallo, nuovo in rosso) si apre dal pulsante SdF nella barra.'];
+    return ['Nuovo: Stato di fatto e Progetto. Il disegno che hai è lo stato di fatto; il Progetto (demolizioni in giallo, costruzioni in rosso) si apre dal pulsante SdF nella barra.'];
   }},
   { fmt:4, ver:'2.05', run:o => {
     let man = 0, n = 0;
@@ -4126,7 +4155,7 @@ function drawWallLegend(Wl, Hl) {
   const pm = 96/25.4, sw = 8*pm, gap = 3*pm, avail = Wl - 90*pm;          // a sinistra resta la scala grafica
   ctx.save(); ctx.font = '9px Segoe UI'; ctx.textBaseline = 'middle'; ctx.fillStyle = '#000'; ctx.strokeStyle = '#000';
   const items = Object.keys(WALL_STYLE).filter(k => used.has(k)).map(k => WALL_STYLE[k])
-    .concat(fases.map(f => ({name:f==='demo' ? 'Demolito' : 'Nuovo', col:FASE_COL[f][1], dash:[], w:0.5})))
+    .concat(fases.map(f => ({name:f==='demo' ? 'Demolizione' : 'Costruzione', col:FASE_COL[f][1], dash:[], w:0.5})))
     .map(st => ({st, w:sw + 1.5*pm + ctx.measureText(st.name).width}));
   const rows = [[]]; let rw = 0;                                             // se non sta su una riga, va su due
   items.forEach(it => { if (rw && rw + gap + it.w > avail) { rows.push([]); rw = 0; } rows[rows.length-1].push(it); rw += (rw ? gap : 0) + it.w; });
@@ -4400,22 +4429,14 @@ function varTable() {
     if (a.fase!=='demo' && a.fase!=='nuovo') return;
     const net = ambNet(a), sdf = a.fase==='demo' ? net : null, prg = a.fase==='nuovo' ? net : null;
     if (sdf!=null) T.amb[0] += sdf; if (prg!=null) T.amb[1] += prg;
-    rows.push(['Ambiente', a.name, a.fase==='demo' ? 'Demolito' : 'Nuovo', sdf!=null ? f(net)+' m²' : '-', prg!=null ? f(net)+' m²' : '-', m2(sdf), m2(prg)]);
+    rows.push(['Ambiente', a.name, a.fase==='demo' ? 'Demolizione' : 'Costruzione', sdf!=null ? f(net)+' m²' : '-', prg!=null ? f(net)+' m²' : '-', m2(sdf), m2(prg)]);
   });
-  const mis = o => o.label+' '+f(o.width)+' x '+f(opHb(o))+' m', ar = o => o.width*opHb(o), used = new Set();
-  state.openings.forEach(o => {
-    if (o.fase!=='nuovo') return;
-    const g = state.segments[o.segIdx], sw = g && g.fase==='es' ? demoAt(o.segIdx, o.t) : null;
-    if (!sw) return;
-    used.add(sw); T.serr[0] += ar(sw); T.serr[1] += ar(o);
-    rows.push(['Serramento', o.label, 'Sostituito', mis(sw), mis(o), m2(ar(sw)), m2(ar(o))]);
-  });
-  state.openings.forEach(o => {
-    if ((o.fase!=='demo' && o.fase!=='nuovo') || used.has(o)) return;
-    if (o.fase==='nuovo' && state.segments[o.segIdx] && state.segments[o.segIdx].fase==='es' && demoAt(o.segIdx, o.t)) return;
+  const mis = o => o.label+' '+f(o.width)+' x '+f(opHb(o))+' m', ar = o => o.width*opHb(o);
+  state.openings.forEach(o => {                                      // demolizione (giallo) e costruzione (rosso) sono sempre due righe, anche per un serramento rifatto
+    if (o.fase!=='demo' && o.fase!=='nuovo') return;
     const d = o.fase==='demo';
     T.serr[d ? 0 : 1] += ar(o);
-    rows.push(['Serramento', o.label, d ? 'Demolito' : 'Nuovo', d ? mis(o) : '-', d ? '-' : mis(o), d ? m2(ar(o)) : '-', d ? '-' : m2(ar(o))]);
+    rows.push(['Serramento', o.label, d ? 'Demolizione' : 'Costruzione', d ? mis(o) : '-', d ? '-' : mis(o), d ? m2(ar(o)) : '-', d ? '-' : m2(ar(o))]);
   });
   if (!rows.length) return null;
   if (T.amb[0] || T.amb[1]) rows.push(['Totale ambienti', '', '', '', '', f(T.amb[0]), f(T.amb[1])]);
@@ -4451,19 +4472,19 @@ function lavTable() {
       const ap = state.openings.filter(o => faces.includes(o.segIdx)).reduce((a,o) => a + o.width*opHb(o), 0);
       const sup = Math.max(0, L*h - ap), vol = sup*t;
       S += sup; V += vol; n++;
-      rows.push([fase==='demo' ? 'Demolizione muro' : 'Nuovo muro', pl(g.a)+'-'+pl(g.b), wallName(wallClass(g)), f(L), f(h), f(t), f(sup), f(vol),
+      rows.push([fase==='demo' ? 'Demolizione muro' : 'Costruzione muro', pl(g.a)+'-'+pl(g.b), wallName(wallClass(g)), f(L), f(h), f(t), f(sup), f(vol),
                  [ap ? 'meno '+f(ap).replace('.', ',')+' m² di serramenti' : '', faces.length>1 || g.thick ? '' : 'spessore presunto'].filter(Boolean).join(', ')]);
     });
-    if (n) rows.push([fase==='demo' ? 'Totale demolizioni muri' : 'Totale nuovi muri', '', '', '', '', '', f(S), f(V), '']);
+    if (n) rows.push([fase==='demo' ? 'Totale demolizioni muri' : 'Totale costruzioni muri', '', '', '', '', '', f(S), f(V), '']);
   });
   // serramenti: rimossi e nuovi; un nuovo serramento in un muro del rilievo che resta apre un varco, se non sostituisce un rimosso
   state.openings.forEach(o => {
     if (o.fase!=='demo' && o.fase!=='nuovo') return;
     const g = state.segments[o.segIdx], H = opHb(o), a = o.width*H, tipo = OP_TXT.tipo[o.type]||o.type;
-    if (o.fase==='demo') { rows.push(['Rimozione serramento', o.label, tipo, f(o.width), f(H), '', f(a), '', g && g.fase==='demo' ? 'nel muro demolito' : '']); return; }
+    if (o.fase==='demo') { rows.push(['Demolizione serramento', o.label, tipo, f(o.width), f(H), '', f(a), '', g && g.fase==='demo' ? 'nel muro in demolizione' : '']); return; }
     const sw = g && g.fase==='es' ? demoAt(o.segIdx, o.t) : null;
-    rows.push([o.type==='P' && g && wallClass(g)==='' ? 'Nuova porta interna' : 'Nuovo serramento', o.label, tipo, f(o.width), f(H), '', f(a), '', sw ? 'al posto di '+sw.label : '']);
-    if (g && g.fase==='es' && !sw) { const t = thick(o.segIdx, h => h.fase==='es'); rows.push(['Apertura varco in muro esistente', o.label, wallName(wallClass(g)), f(o.width), f(H), f(t), f(a), f(a*t), '']); }
+    rows.push([o.type==='P' && g && wallClass(g)==='' ? 'Costruzione porta interna' : 'Costruzione serramento', o.label, tipo, f(o.width), f(H), '', f(a), '', sw ? 'al posto di '+sw.label : '']);
+    if (g && g.fase==='es' && !sw) { const t = thick(o.segIdx, h => h.fase==='es'); rows.push(['Demolizione per varco in muro esistente', o.label, wallName(wallClass(g)), f(o.width), f(H), f(t), f(a), f(a*t), '']); }
   });
   if (!rows.length) return null;
   return {head:['Voce','Elemento','Tipo','Lunghezza o larghezza (m)','Altezza (m)','Spessore (m)','Superficie (m²)','Volume (m³)','Note'], rows};
@@ -5257,6 +5278,7 @@ function drawWallsPrev() {
   ctx.save();
   ctx.fillStyle = 'rgba(255,159,67,.12)';
   (P.rooms||[]).forEach(r => {
+    if (r.off) return;
     ctx.beginPath(); r.ring.forEach((id,k) => { const s = w2s(P.nodes[id].x, P.nodes[id].y); if (k) ctx.lineTo(s.x,s.y); else ctx.moveTo(s.x,s.y); });
     ctx.closePath(); ctx.fill();
   });
@@ -5267,9 +5289,9 @@ function drawWallsPrev() {
   });
   ctx.fillStyle = '#ff9f43';
   P.nodes.forEach(n => { const s=w2s(n.x,n.y); ctx.beginPath(); ctx.arc(s.x,s.y,3,0,Math.PI*2); ctx.fill(); });
-  (P.ops||[]).forEach(o => {                                              // porte (rosso) e finestre (blu) proposte dal DXF
+  (P.ops||[]).forEach(o => {                                              // porte (arancione) e finestre (azzurro) proposte dal DXF
     const a = w2s(o.cx - o.ux*o.width/2, o.cy - o.uy*o.width/2), b = w2s(o.cx + o.ux*o.width/2, o.cy + o.uy*o.width/2);
-    ctx.strokeStyle = o.type==='P' ? '#ff5a5a' : '#4aa8ff'; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    ctx.strokeStyle = o.type==='P' ? '#ff9944' : '#00e5ff'; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
   });
   ctx.strokeStyle = '#3ddc84'; ctx.lineWidth = 2.5;
   (P.pil||[]).forEach(q => { const a = w2s(q.x, q.y), b = w2s(q.x+q.w, q.y-q.h); ctx.strokeRect(a.x, a.y, b.x-a.x, b.y-a.y); });
@@ -6038,6 +6060,13 @@ function dxfPlan(raw, arcs) {
   // 8. contorno esterno: giro esterno del pezzo di disegno piu' grande
   let ext = null;
   faces.filter(f => f.area < -1e-4).forEach(f => { if (!ext || compEdges[comp[f.cyc[0]]] > compEdges[comp[ext.cyc[0]]]) ext = f; });
+  // le finestre stanno sui muri esterni: le celle lontane dal contorno (gradini, frecce, segni) non sono finestre
+  if (ext) {
+    const pe = ext.cyc.map(i => nodes[i]);
+    const dEdge = (x, y) => { let m = 1e9; pe.forEach((a, i) => { const b = pe[(i+1)%pe.length], dx = b.x-a.x, dy = b.y-a.y, L2 = dx*dx+dy*dy; if (!L2) return;
+      const t = Math.max(0, Math.min(1, ((x-a.x)*dx + (y-a.y)*dy)/L2)); m = Math.min(m, Math.hypot(x-(a.x+t*dx), y-(a.y+t*dy))); }); return m; };
+    for (let i=wins.length-1; i>=0; i--) { const w = wins[i], cu = (w.u0+w.u1)/2, cv = (w.v0+w.v1)/2; if (dEdge(cu*w.ux - cv*w.uy, cu*w.uy + cv*w.ux) > 0.6) wins.splice(i, 1); }
+  }
   // 9. linee del risultato: bordi degli ambienti e del contorno, fusi quando sono in linea
   const chains = (cycles) => {
     const E = new Map(); cycles.forEach(c => c.forEach((p, i) => { const q = c[(i+1)%c.length]; if (p!==q) E.set(p<q ? p+'_'+q : q+'_'+p, [p, q]); }));
@@ -6151,7 +6180,7 @@ $id('file-dxf').addEventListener('change', async e => {
       if (prog()) { setTip('DXF importato come base. Il ricalco crea il rilievo: si fa nello Stato di fatto.'); return; }
       wallsOpen();
       const skipped = d.ents.length - ents.length;
-      setTip('DXF importato: ambienti, porte (rosso), finestre (blu) e pilastri (verde) proposti. Controlla e premi Applica.'+(skipped ? ' Ignorati '+skipped+' elementi di testi e cornici.' : ''));
+      setTip('DXF importato: ambienti, porte (arancione), finestre (azzurro) e pilastri (verde) proposti. Controlla e premi Applica.'+(skipped ? ' Ignorati '+skipped+' elementi di testi e cornici.' : ''));
     });
   } catch (err) { alert('Import DXF non riuscito: '+err.message); }
 });
@@ -6161,8 +6190,14 @@ function dxfPrev(P) {
   const nd = i => { let v = idOf.get(i); if (v===undefined) { v = nodes.length; idOf.set(i, v); nodes.push({x:P.nodes[i].x, y:P.nodes[i].y}); } return v; };
   const roomCyc = P.rooms.map(f => f.cyc), rch = P.chains(roomCyc), segs = [], geo = [];
   const ends = new Set(); rch.forEach(c => { ends.add(c[0]); ends.add(c[1]); });
-  rch.forEach(c => { segs.push([nd(c[0]), nd(c[1])]); geo.push([P.nodes[c[0]], P.nodes[c[1]]]); });
-  const rooms = roomCyc.map(cyc => ({ring:cyc.filter(i => ends.has(i)).map(nd)})).filter(r => r.ring.length >= 3);
+  const edgeChain = new Map();                                            // lato del grafo -> linea (fusa) che lo contiene
+  rch.forEach((c, k) => { segs.push([nd(c[0]), nd(c[1])]); geo.push([P.nodes[c[0]], P.nodes[c[1]]]); for (let i=0; i<c[2].length-1; i++) { const a = c[2][i], b = c[2][i+1]; edgeChain.set(a<b ? a+'_'+b : b+'_'+a, k); } });
+  const segRooms = rch.map(() => []), rooms = [];                         // per ogni linea, quali ambienti la usano: tolto l'ultimo, la linea non serve piu'
+  roomCyc.forEach((cyc, ri) => {
+    const ring = cyc.filter(i => ends.has(i)).map(nd); if (ring.length < 3) return;
+    const ix = rooms.length; rooms.push({ring, area:P.rooms[ri].area, off:false});
+    cyc.forEach((a, i) => { const b = cyc[(i+1)%cyc.length], k = edgeChain.get(a<b ? a+'_'+b : b+'_'+a); if (k!==undefined && !segRooms[k].includes(ix)) segRooms[k].push(ix); });
+  });
   const extStart = segs.length;
   if (P.ext) P.chains([P.ext.cyc]).forEach(c => { segs.push([nd(c[0]), nd(c[1])]); geo.push([P.nodes[c[0]], P.nodes[c[1]]]); });
   // serramenti: sul lato (ambiente o contorno) piu' vicino e parallelo
@@ -6187,7 +6222,7 @@ function dxfPrev(P) {
   });
   th.sort((a, b) => a-b);
   const wallT = th.length ? Math.max(0.10, Math.round(th[Math.floor(th.length/2)]*20)/20) : null;
-  return {nodes, segs, rooms, extStart, wallT, ops, pil:P.pil, vec:true, stat:P.stat};
+  return {nodes, segs, rooms, segRooms, extStart, wallT, ops, pil:P.pil, vec:true, stat:P.stat};
 }
 
 function impConfirm() {
@@ -6221,14 +6256,22 @@ function wallsSchedule() {
   $id('walls-count').textContent = 'Elaboro...';
   clearTimeout(_wallsTimer); _wallsTimer = setTimeout(wallsRun, 200);
 }
+// elenco degli ambienti proposti: superficie e casella per escluderli prima di applicare
+function wallsList() {
+  const P = state.wallsPrev, box = $id('walls-list'); if (!box) return;
+  if (!P || !(P.rooms||[]).length) { box.innerHTML = ''; return; }
+  const ar = r => { if (r.area!=null) return r.area; let a = 0; r.ring.forEach((i,k) => { const p = P.nodes[i], q = P.nodes[r.ring[(k+1)%r.ring.length]]; a += p.x*q.y - q.x*p.y; }); return Math.abs(a)/2; };
+  box.innerHTML = P.rooms.map((r,i) => '<label style="display:flex;gap:8px;align-items:center;cursor:pointer;padding:2px 0"><input type="checkbox" '+(r.off ? '' : 'checked')+' onchange="wallsToggle('+i+', this.checked)"> '+(i+1)+'. '+ar(r).toFixed(2).replace('.', ',')+' m²</label>').join('');
+}
+function wallsToggle(i, on) { const P = state.wallsPrev; if (!P || !P.rooms[i]) return; P.rooms[i].off = !on; draw(); }
 function wallsRun() {
   const u = state.underlay; if (!u) return;
   document.querySelectorAll('.wp-raster').forEach(el => { el.style.display = u.vec ? 'none' : ''; });          // i cursori servono solo al ricalco da immagine
   if (u.vec) {
     state.wallsPrev = u.vec;
     const nD = u.vec.ops.filter(o => o.type==='P').length, nF = u.vec.ops.length - nD;
-    $id('walls-count').textContent = u.vec.rooms.length+' ambienti, '+nD+' porte, '+nF+' finestre, '+u.vec.pil.length+' pilastri ('+u.vec.ms+' ms)';
-    draw(); return;
+    $id('walls-count').textContent = u.vec.rooms.length+' ambienti, '+nD+' porte, '+nF+' finestre, '+u.vec.pil.length+' pilastri ('+u.vec.ms+' ms). Togli la spunta agli ambienti che non servono.';
+    wallsList(); draw(); return;
   }
   const lev = ROOM_LEVELS[+$id('w-lev').value] || ROOM_LEVELS[3];
   const o = Object.assign({ doorM: +$id('w-door').value/100, jogM: lev.simplM*1.2 }, lev);
@@ -6243,23 +6286,24 @@ function wallsRun() {
     wallT: r.wallTcm ? Math.max(0.10, Math.round(r.wallTcm/5)*5/100) : null,    // spessore dei muri esterni letto dal disegno, a 5 cm
   };
   $id('walls-count').textContent = r.rooms.length+' ambienti, '+r.segs.length+' linee, muri esterni ~'+(r.wallTcm||0)+' cm ('+Math.round(performance.now()-t)+' ms)';
-  draw();
+  wallsList(); draw();
 }
 function wallsApply() {
   const P = state.wallsPrev; if (!P || !P.segs.length) return;
   if (prog()) { setTip('Il ricalco crea il rilievo: si fa nello Stato di fatto.'); return; }
   saveHistory();
-  const base = state.points.length, s0 = state.segments.length, h = lastAmbH();
-  P.nodes.forEach(n => newPoint(n.x, n.y));
+  const s0 = state.segments.length, h = lastAmbH(), pt = [];
+  const np = i => pt[i]===undefined ? (pt[i] = newPoint(P.nodes[i].x, P.nodes[i].y)) : pt[i];     // i punti nascono solo se servono
   const segOf = [];
   P.segs.forEach(([a,b],k) => {
-    const ex = state.segments.findIndex(s => (s.a===base+a && s.b===base+b) || (s.a===base+b && s.b===base+a));
+    if (P.segRooms && P.segRooms[k] && P.segRooms[k].length && P.segRooms[k].every(ri => P.rooms[ri].off)) return;       // serviva solo ad ambienti esclusi
+    const A = np(a), B = np(b), ex = state.segments.findIndex(s => (s.a===A && s.b===B) || (s.a===B && s.b===A));
     if (ex >= 0) { segOf[k] = ex; return; }
-    state.segments.push(k>=(P.extStart??1e9) ? {a:base+a, b:base+b, layer:'MURI_EST'} : {a:base+a, b:base+b});
+    state.segments.push(k>=(P.extStart??1e9) ? {a:A, b:B, layer:'MURI_EST'} : {a:A, b:B});
     segOf[k] = state.segments.length-1;
   });
-  (P.rooms||[]).forEach(r => {
-    const idx = r.ring.map(id => base+id);
+  (P.rooms||[]).filter(r => !r.off).forEach(r => {
+    const idx = r.ring.map(np);
     const n = state.ambienti.length;
     state.ambienti.push({ indices:idx, name:'Ambiente '+(n+1), h, color:AMB_COLORS[n%AMB_COLORS.length], category:'utile' });   // il ricalco scarta gia' i balconi
   });
@@ -6267,12 +6311,13 @@ function wallsApply() {
   classifyExtWalls(state.segments.map((_,k) => k).filter(k => k >= s0), P.wallT);
   // DXF: porte, finestre e pilastri trovati nel disegno
   (P.ops||[]).forEach(o => {
+    if (segOf[o.k]===undefined) return;
     const D = OPENING_DEF[o.type], width = +o.width.toFixed(2), len = segLength(segOf[o.k]), hw = width/len/2;
     state.openings.push({type:o.type, segIdx:segOf[o.k], t:Math.min(Math.max(o.t, hw), 1-hw), width, hb:D.hb, h0:D.h0, spessore:0, label:nextOpeningLabel(o.type)});
     classifyByOpening(state.openings.length-1);
   });
   (P.pil||[]).forEach(q => { state.pilastroCounter++; state.pilastri.push({x:q.x, y:q.y, w:q.w, h:q.h, label:'PIL'+String(state.pilastroCounter).padStart(2,'0')}); });
-  const nR = (P.rooms||[]).length, nd = state.segments.filter(g => g.cv==='dubbio').length;
+  const nR = (P.rooms||[]).filter(r => !r.off).length, nd = state.segments.filter(g => g.cv==='dubbio').length;
   state.wallsPrev = null; state.moveBase = false; $id('walls-panel').classList.remove('show'); $id('base-panel').classList.remove('show');   // piu' spazio per lavorare; si riapre da File
   const nOp = (P.ops||[]).length, nPil = (P.pil||[]).length;
   commit('Aggiunti '+nR+' ambienti ('+P.segs.length+' linee)'+(nOp || nPil ? ', '+nOp+' serramenti e '+nPil+' pilastri trovati nel disegno: controllali' : '')+'. Muri fucsia tratteggiati = non assegnati, tipo proposto da validare ('+nd+'): inserendo le finestre si decidono da soli.');
@@ -6468,7 +6513,7 @@ function drawPastePreview() {
 function toggleLegend() {
   const b = $id('leg-box'), open = b.style.display!=='block';
   if (open) b.innerHTML = Object.keys(WALL_STYLE).map(k => '<div><i style="border-top-color:'+COL_SCREEN[WALL_STYLE[k].col]+(k==='nd' ? ';border-top-style:dashed' : '')+'"></i>'+WALL_STYLE[k].name+'</div>').join('')+
-    (prog() ? '<div><i style="border-top-color:'+FASE_COL.demo[0]+'"></i>Demolito</div><div><i style="border-top-color:'+FASE_COL.nuovo[0]+'"></i>Nuovo</div>' : '');
+    (prog() ? '<div><i style="border-top-color:'+FASE_COL.demo[0]+'"></i>Demolizione</div><div><i style="border-top-color:'+FASE_COL.nuovo[0]+'"></i>Costruzione</div>' : '');
   b.style.display = open ? 'block' : 'none';
 }
 
@@ -6508,8 +6553,8 @@ const GUIDE = [
   ]},
   {title:'Progetto: demolizioni e costruzioni', sub:'Dal rilievo al progetto, con le quantità per il computo', steps:[
     {t:'Tocca il pulsante SdF nella barra: diventa PRG e sei nel Progetto (bordo rosso). Il rilievo resta com\'è, bloccato.', el:['#btn-view'], done:() => prog()},
-    {t:'Tocca un muro interno, "Demolisci": diventa giallo, con la faccia opposta e i serramenti che contiene. I muri esterni e verso altre unità non si demoliscono.', done:() => state.segments.some(g => g.fase==='demo')},
-    {t:'Disegna i muri nuovi con "Muro" o "Stanza rettangolare": sono rossi. Le porte nuove con Inserisci.', el:['#btn-g-draw','#ti-wall','#ti-room'], done:() => state.segments.some(g => g.fase==='nuovo')},
+    {t:'Tocca un muro interno, "Demolisci": diventa giallo (demolizione), con la faccia opposta e i serramenti che contiene. I muri esterni e verso altre unità non si demoliscono.', done:() => state.segments.some(g => g.fase==='demo')},
+    {t:'Disegna le costruzioni con "Muro" o "Stanza rettangolare": sono rosse. Le porte con Inserisci.', el:['#btn-g-draw','#ti-wall','#ti-room'], done:() => state.segments.some(g => g.fase==='nuovo')},
     {t:'Gli ambienti cambiati: tocca l\'ambiente vecchio, "Superato nel progetto", poi disegna il nuovo con "Ambiente da punti" toccando i vertici.', el:['#btn-g-draw','#ti-roompts'], done:() => state.ambienti.some(a => a.fase==='nuovo')},
     {t:'File, "Esporta tabelle", Demolizioni e costruzioni: muri in m² e m³, serramenti rimossi e nuovi, varchi. Con "Esporta rilievo completo" hai anche le due tavole a confronto.', el:['#btn-file','#fm-tables','#fm-full']},
   ]},
@@ -6577,8 +6622,8 @@ else {
 //  WEBAPP INSTALLABILE (solo se servita da internet, non da file locale)
 // ═══════════════════════════════════════════════════════════
 // versione e novita' vengono scritte da pubblica_app.py leggendo la prima voce di CHANGELOG.md
-const APP_VERSION = '2.10';
-const APP_NOTE = ["Balconi, terrazze, logge e altri spazi aperti: i muri che li delimitano, e non hanno un ambiente chiuso dall'altro lato, diventano linee solo grafiche (grigie e sottili): restano disegnate ma non entrano in superficie commerciale, demolizioni e costruzioni. Un muro tra balcone e stanza resta una muratura", "\"Spessore e tipo\" su più muri: se i muri sono uguali la finestra mostra il valore, se sono diversi il campo resta vuoto (\"diversi\") e i muri non vengono toccati. Il pulsante nella barra della selezione dice subito classe e spessore, oppure \"Diversi\"", "Pilastro o ingombro: oltre al pilastro si inseriscono camino, canna fumaria e altri ingombri; la parte che cade dentro l'ambiente si toglie dalla superficie netta e dal volume (colonna \"Ingombri tolti\" nella tabella Ambienti). La superficie commerciale non cambia: i pilastri restano nei muri", "Con il comando Muro (o qualunque altro) lo spostamento della vista con rotella, tasto destro o Alt non inserisce più punti né chiude muri", "Punti più piccoli: 3 px fissi a qualunque zoom, con il bordo bianco"];
+const APP_VERSION = '2.11';
+const APP_NOTE = ["Importa DXF: le finestre si cercano solo sui muri esterni (niente più finestre false nel vano scala, gradini e segni); porte e pilastri restano proposti, da controllare", "Anteprima del ricalco (DXF, PDF e immagini): elenco degli ambienti trovati con la superficie e una casella per ciascuno. Togli la spunta a quelli che non servono: non vengono creati, e nemmeno le linee e i punti che servivano solo a loro", "Unisci con un altro ambiente (menu dell'ambiente): tocchi l'altro ambiente e i due diventano uno, se hanno un lato in comune; si annulla con un passo", "Giallo = demolizione, rosso = costruzione, ovunque: legenda, tabella Demolizioni e costruzioni, Riepilogo variazioni (un serramento rifatto sono due righe, una demolizione e una costruzione), messaggi e guida. Il tipo di muro \"verso non riscaldati o vano scala\" passa da giallo a turchese, per non confondersi con le demolizioni. Nell'anteprima DXF le porte sono arancione e le finestre azzurre"];
 const IS_LOCAL = APP_VERSION.startsWith('__');
 document.getElementById('menu-version').textContent = IS_LOCAL ? 'Versione locale' : 'ℹ Versione '+APP_VERSION+' - novità';
 // finestra con un elenco puntato (novita', note di aggiornamento del progetto); extra = secondo elenco con titoletto
