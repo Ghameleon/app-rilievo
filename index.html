@@ -229,18 +229,16 @@
 <div id="group-draw" class="floating-menu">
   <div class="menu-item tool-item" id="ti-wall" onclick="pickTool('wall')"><span class="ti">▭</span><span class="tt"><b>Muro</b><small>Traccia i muri, un vertice dopo l'altro</small></span></div>
   <div class="menu-item tool-item" id="ti-room" onclick="pickTool('room')"><span class="ti">⬚</span><span class="tt"><b>Stanza rettangolare</b><small>Trascina un rettangolo: 4 muri e l'ambiente in un colpo</small></span></div>
-  <div class="menu-item tool-item" id="ti-trilatere" onclick="pickTool('trilatere')"><span class="ti">◎</span><span class="tt"><b>Trilatera</b><small>Trova un punto da due distanze misurate</small></span></div>
-  <div class="menu-item tool-item" id="ti-measure" onclick="pickTool('measure')"><span class="ti">📏</span><span class="tt"><b>Misura</b><small>Legge la distanza tra due punti</small></span></div>
-  <div class="menu-item tool-item" id="ti-split" onclick="pickTool('split')"><span class="ti">✂</span><span class="tt"><b>Spezza</b><small>Divide un muro con un nuovo punto</small></span></div>
-  <div class="menu-item tool-item" id="ti-point" onclick="pickTool('point')"><span class="ti">+</span><span class="tt"><b>Punto</b><small>Aggiunge un punto libero</small></span></div>
   <div class="menu-item tool-item" id="ti-roompts" onclick="pickTool('roompts')"><span class="ti">⬠</span><span class="tt"><b>Ambiente da punti</b><small>Tocca i vertici in ordine: nel Progetto, per le stanze unite</small></span></div>
   <div class="menu-item tool-item" id="ti-boundary" onclick="pickTool('boundary')"><span class="ti">⬚</span><span class="tt"><b>Ambiente da area</b><small>Tocca dentro un'area chiusa da muri: il contorno lo trova l'app</small></span></div>
-  <div class="menu-item tool-item" id="ti-paste" onclick="pickTool('paste')"><span class="ti">⎗</span><span class="tt"><b>Incolla</b><small>Posa quello che hai copiato: tocca dove metterlo (si aggancia a un punto)</small></span></div>
-  <div class="menu-item tool-item" id="ti-pastehere" onclick="pasteInPlace()"><span class="ti">⎗</span><span class="tt"><b>Incolla sul posto</b><small>Sopra l'originale, per fare una variante e poi spostarla</small></span></div>
+  <div class="menu-item tool-item" id="ti-split" onclick="pickTool('split')"><span class="ti">✂</span><span class="tt"><b>Spezza</b><small>Divide un muro con un nuovo punto</small></span></div>
+  <div class="menu-item tool-item" id="ti-connect" onclick="pickTool('connect')"><span class="ti">/</span><span class="tt"><b>Collega</b><small>Unisce due punti con una linea</small></span></div>
+  <div class="menu-item tool-item" id="ti-point" onclick="pickTool('point')"><span class="ti">+</span><span class="tt"><b>Punto</b><small>Aggiunge un punto libero</small></span></div>
+  <div class="menu-item tool-item" id="ti-trilatere" onclick="pickTool('trilatere')"><span class="ti">◎</span><span class="tt"><b>Trilatera</b><small>Trova un punto da due distanze misurate</small></span></div>
+  <div class="menu-item tool-item" id="ti-measure" onclick="pickTool('measure')"><span class="ti">📏</span><span class="tt"><b>Misura</b><small>Legge la distanza tra due punti</small></span></div>
   <div class="menu-item tool-item" id="ti-paste" onclick="pickTool('paste')"><span class="ti">⎗</span><span class="tt"><b>Incolla</b><small>Posa quello che hai copiato: tocca dove metterlo (si aggancia a un punto)</small></span></div>
   <div class="menu-item tool-item" id="ti-pastehere" onclick="pasteInPlace()"><span class="ti">⎗</span><span class="tt"><b>Incolla sul posto</b><small>Sopra l'originale, per fare una variante e poi spostarla</small></span></div>
   <div class="menu-item tool-item" id="ti-inherit" onclick="pickTool('inherit')"><span class="ti">⇉</span><span class="tt"><b>Eredita proprietà</b><small>Tocca un elemento da copiare, poi quelli che ne ricevono le proprietà</small></span></div>
-  <div class="menu-item tool-item" id="ti-connect" onclick="pickTool('connect')"><span class="ti">/</span><span class="tt"><b>Collega</b><small>Unisce due punti con una linea</small></span></div>
 </div>
 <div id="group-ins" class="floating-menu">
   <div class="menu-item tool-item" id="ti-opening-F" onclick="selectOpeningType('F')"><span class="ti">🪟</span><span class="tt"><b>Finestra (F)</b><small>Poi tocca il muro dove va</small></span></div>
@@ -252,6 +250,7 @@
   <div class="menu-item tool-item" id="ti-pencil" onclick="pickTool('pencil')"><span class="ti">✏</span><span class="tt"><b>Matita</b><small>Disegno a mano libera</small></span></div>
 </div>
 <div id="file-submenu" class="floating-menu">
+  <div class="menu-item" id="fm-import-dxf" onclick="importDxf()">📐 Importa DXF<small class="md">Planimetria da CAD: unità, layer dei muri, gli ambienti li trova l'app</small></div>
   <div class="menu-item" id="fm-import" onclick="importPlan()">🗺 Importa planimetria (PDF/JPG)<small class="md">La catastale come base su cui ricalcare</small></div>
   <div class="menu-item" id="fm-photo" onclick="photoPlan()">📷 Fotografa planimetria<small class="md">Il foglio di carta: lo raddrizzi e lo metti in scala</small></div>
   <div class="menu-item" onclick="toggleBasePanel()">🗺 Mostra/nascondi pannello base<small class="md">Trasparenza della base e Ricalca ambienti</small></div>
@@ -285,7 +284,6 @@
   <div class="menu-item" onclick="openingMenuAction('energy')">📋 Dati energetici<small class="md">Vetro, telaio, cassonetto e specchiature, per l'APE</small></div>
   <div class="menu-item" data-lock onclick="openingMenuAction('delete')">🗑 Elimina<small class="md">Il muro si richiude</small></div>
   <div class="menu-item" onclick="openingMenuAction('copy')">⎘ Copia<small class="md">Il serramento con il tratto di muro che lo porta</small></div>
-  <div class="menu-item" onclick="openingMenuAction('copy')">⎘ Copia<small class="md">Il serramento con il tratto di muro che lo porta</small></div>
   <div class="menu-item" onclick="openingMenuAction('inherit')">🖌 Eredita proprietà<small class="md">Copia misure e dati energetici su altri serramenti dello stesso tipo</small></div>
   <div class="menu-item" data-sdf onclick="openingMenuAction('editall')">✎ Modifica tutti quelli dello stesso tipo<small class="md">Stesse misure a tutte le F, PF o P</small></div>
   <div class="menu-item" data-sdf onclick="openingMenuAction('renum')">🔢 Rinumera F, PF e P<small class="md">Numeri in ordine, senza buchi</small></div>
@@ -297,7 +295,6 @@
   <div class="menu-item" onclick="segMenuAction('multi')">➕ Selezione multipla<small class="md">Poi tocca altri elementi per agire su tutti</small></div>
   <div class="menu-item" onclick="segMenuAction('F')">🪟 Inserisci finestra qui<small class="md">Nel punto toccato</small></div>
   <div class="menu-item" onclick="segMenuAction('PF')">🚪 Inserisci porta-finestra qui<small class="md">Nel punto toccato</small></div>
-  <div class="menu-item" onclick="segMenuAction('copy')">⎘ Copia<small class="md">Il muro con i suoi serramenti; poi Incolla</small></div>
   <div class="menu-item" onclick="segMenuAction('copy')">⎘ Copia<small class="md">Il muro con i suoi serramenti; poi Incolla</small></div>
   <div class="menu-item" onclick="segMenuAction('inherit')">🖌 Eredita proprietà<small class="md">Copia classe e spessore su altri muri: tocca i muri di destinazione</small></div>
   <div class="menu-item" data-lock onclick="segMenuAction('move')">✥ Sposta<small class="md">Trascina il muro dove va</small></div>
@@ -314,7 +311,6 @@
 <div id="amb-context" class="floating-menu">
   <div class="menu-item" data-demo onclick="ambMenuAction('demo')"></div>
   <div class="menu-item" data-lock onclick="ambMenuAction('edit')">✎ Modifica ambiente<small class="md">Nome, altezza e categoria; mostra superficie e pareti</small></div>
-  <div class="menu-item" onclick="ambMenuAction('copy')">⎘ Copia ambiente<small class="md">Contorno, serramenti e dati: poi Incolla, per fare una variante</small></div>
   <div class="menu-item" onclick="ambMenuAction('copy')">⎘ Copia ambiente<small class="md">Contorno, serramenti e dati: poi Incolla, per fare una variante</small></div>
   <div class="menu-item" onclick="ambMenuAction('inherit')">🖌 Eredita proprietà<small class="md">Copia categoria e altezza su altri ambienti</small></div>
   <div class="menu-item" data-lock onclick="ambMenuAction('delete')">🗑 Elimina solo l'ambiente<small class="md">Le linee restano</small></div>
@@ -440,6 +436,7 @@
 
 <input type="file" id="file-photo" accept="image/*" capture="environment" style="display:none">
 <input type="file" id="file-plan" accept=".pdf,application/pdf,image/*" style="display:none">
+<input type="file" id="file-dxf" accept=".dxf" style="display:none">
 <input type="file" id="file-plan-cam" accept="image/*" capture="environment" style="display:none">
 <input type="file" id="file-json"  accept=".json,application/json"        style="display:none">
 
@@ -520,7 +517,7 @@ const COL_SCREEN = {
   stair:'#7aa8d0', stairArrow:'#cfe6ff',
 };
 const COL_PRINT = {
-  wall:'#000', wallExt:'#000', wallCom:'#000', wallNr:'#000', wallNd:'#000', quota:'#828282', quotaOk:'#828282', lead:'#666',
+  wall:'#1a5fd0', wallExt:'#7b2cbf', wallCom:'#0f9d58', wallNr:'#d98a00', wallNd:'#e0189f', quota:'#828282', quotaOk:'#828282', lead:'#666',
   win:'#0a2a8a', door:'#6b3a10', pf:'#0a2a8a',
   ambName:'#000', ambArea:'#000', ambH:'#222', ambVol:'#222', label:'#000',
   stair:'#333', stairArrow:'#000',
@@ -564,14 +561,12 @@ function ambNet(am) {
 // pareti di un ambiente: perimetro x altezza (lorde, vuoto per pieno) e nette, cioe' meno le aperture sul suo bordo.
 // Un serramento conta se sta su un lato dell'ambiente o sulla faccia opposta del suo muro: una porta tra due stanze
 // si toglie da entrambe. All'aperto niente pareti: null.
-function ambWalls(am, cuts) {
-  const pts = am.indices.map(i => state.points[i]).filter(Boolean);
-  if (pts.length < 3 || ambNoVol(am)) return null;
+function ambOpenings(am, cuts) {                             // indici dei serramenti vivi sul bordo dell'ambiente (o sulla faccia opposta del muro)
+  const pts = am.indices.map(i => state.points[i]).filter(Boolean), out = [];
+  if (pts.length < 3) return out;
   cuts = cuts || wallCuts();
   const edges = pts.map((p,k) => [p, pts[(k+1)%pts.length]]);
   const onEdge = c => c && edges.some(([p,q]) => distPtSeg(c.x, c.y, p.x, p.y, q.x, q.y) < 0.03);
-  const per = edges.reduce((t,[p,q]) => t + Math.hypot(q.x-p.x, q.y-p.y), 0);
-  let ap = 0, n = 0;
   state.openings.forEach((op,i) => {
     if (!live(op)) return;
     const c = openingCenterW(i), h = state.segments[cuts.opp[i]];
@@ -581,10 +576,17 @@ function ambWalls(am, cuts) {
       const t = l2 ? Math.max(0, Math.min(1, ((c.x-C.x)*dx + (c.y-C.y)*dy)/l2)) : 0;
       o = {x:C.x+t*dx, y:C.y+t*dy};
     }
-    if (onEdge(c) || onEdge(o)) { ap += op.width*opHb(op); n++; }
+    if (onEdge(c) || onEdge(o)) out.push(i);
   });
+  return out;
+}
+function ambWalls(am, cuts) {
+  const pts = am.indices.map(i => state.points[i]).filter(Boolean);
+  if (pts.length < 3 || ambNoVol(am)) return null;
+  const per = pts.reduce((t,p,k) => { const q = pts[(k+1)%pts.length]; return t + Math.hypot(q.x-p.x, q.y-p.y); }, 0);
+  const ops = ambOpenings(am, cuts), ap = ops.reduce((t,i) => t + state.openings[i].width*opHb(state.openings[i]), 0);
   const lorde = per*am.h;
-  return {per, lorde, ap, n, nette:Math.max(0, lorde-ap)};
+  return {per, lorde, ap, n:ops.length, ops, nette:Math.max(0, lorde-ap)};
 }
 function ambCenter(am) {
   const pts = am.indices.map(i => state.points[i]).filter(Boolean);
@@ -3582,6 +3584,8 @@ document.addEventListener('keydown', e => {
     state.measureShow=null; state.roomDraw=null;
     state.selBox=null; state.selSet=null; state.selOpen=null; state.selSeg=null; state.selPen=null; state.sel=null; state.multi=false; state.moveSel=false;
     document.getElementById('photo-viewer').classList.remove('show');
+    state.pencilCurrent = null;               // la matita a meta' si annulla, non si salva
+    if (state.tool!=='select') { setTool('select'); setTip('Seleziona.'); }      // Esc riporta sempre a Seleziona
     hideAllMenus(); draw();
     return;
   }
@@ -3945,6 +3949,8 @@ function renderExport(E, den, orient) {
     drawAmbienti(); drawPencil(); drawSegments(); drawPilastri(); drawScale(); drawOpenings(); drawLabels();
     ctx.restore();
     drawScaleBar(den, Hl); drawWallLegend(Wl, Hl);
+    ctx.save(); ctx.font = 'italic 8pt Segoe UI'; ctx.fillStyle = '#828282'; ctx.textAlign = 'right'; ctx.textBaseline = 'middle';      // come nelle tabelle
+    ctx.fillText('Aggiornato il '+new Date().toLocaleDateString('it-IT'), Wl - 10*96/25.4, Hl - 3.2*96/25.4); ctx.restore();
   } finally {
     PLAY = null;
     ctx = sv.ctx; W = sv.W; H = sv.H; C = sv.C; PRINT = sv.PRINT;
@@ -4078,7 +4084,7 @@ function drawWallLegend(Wl, Hl) {
     const y = Hl - (rows.length > 1 ? 12 - 4.5*r : 9.5)*pm;
     let x = Wl - 10*pm - row.reduce((t,it) => t + it.w + gap, -gap);
     row.forEach(({st, w}) => {
-      ctx.lineWidth = st.w*pm; ctx.setLineDash(st.dash.map(v => v*pm)); ctx.strokeStyle = st.col && st.col[0]==='#' ? st.col : '#000';
+      ctx.lineWidth = st.w*pm; ctx.setLineDash(st.dash.map(v => v*pm)); ctx.strokeStyle = st.col && st.col[0]==='#' ? st.col : C[st.col] || '#000';
       ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x+sw, y); ctx.stroke(); ctx.setLineDash([]);
       ctx.fillText(st.name, x + sw + 1.5*pm, y); x += w + gap;
     });
@@ -4117,6 +4123,17 @@ function makePdf(pages) {
   return new Blob(parts, {type:'application/pdf'});
 }
 // kind: 'jpg' | 'pdf' | 'full' (PDF col disegno e dietro le tabelle scelte in E.tables)
+// confronto: una tabella identica tra stato di fatto e progetto si stampa una volta sola ("invariato"), le altre una per vista
+function bothTables(ids) {
+  const dat = v => withView(v, () => { const o = {}; TABLES.forEach(t => { if (ids.includes(t.id) && t.id!=='lav' && t.id!=='var') o[t.id] = JSON.stringify(t.data()); }); return o; });
+  const a = dat('sdf'), b = dat('prog'), same = Object.keys(a).filter(k => a[k]!=='null' && a[k]===b[k]), diff = ids.filter(k => !same.includes(k));
+  const pages = [];
+  if (ids.includes('var')) withView('prog', () => tablePages(['var'])).forEach(p => pages.push(p));
+  if (same.length) withView('sdf', () => tablePages(same, t => 'Rilievo - '+t.title+' (invariato tra stato di fatto e progetto)')).forEach(p => pages.push(p));
+  withView('sdf', () => tablePages(diff.filter(k => k!=='lav' && k!=='var'))).forEach(p => pages.push(p));
+  withView('prog', () => tablePages(diff.filter(k => k!=='var'))).forEach(p => pages.push(p));
+  return pages;
+}
 function expGo() {
   const E = state.exp; if (!E) return;
   const den = expDen(E), o = expFit(E, den); if (!o) return;
@@ -4124,7 +4141,7 @@ function expGo() {
   E.wm = !!state.underlay && $id('exp-wm').checked;
   const kind = E.kind, ids = E.tables || [], views = E.both ? ['sdf','prog'] : [state.view];
   const plans = views.map(v => withView(v, () => renderExport(E, den, o)));
-  const tabs = E.both ? withView('sdf', () => tablePages(ids.filter(t => t!=='lav'))).concat(withView('prog', () => tablePages(ids))) : tablePages(ids);
+  const tabs = E.both ? bothTables(ids) : tablePages(ids);
   expCancel();
   const base = stamp()+'_rilievo_1-'+den+(hasProject() && !E.both ? (prog() ? '_progetto' : '_stato_di_fatto') : '');
   Promise.all(plans.concat(tabs).map(canvasJpg)).then(pp => {
@@ -4147,7 +4164,7 @@ function exportDXF() {
   const g = (code, val) => { L.push(String(code)); L.push(String(val)); };
   const n = v => (Math.round(v*10000)/10000).toFixed(4);
 
-  const LAYERS = [['MURI',7],['MURI_EST',1],['QUOTE',2],['SERRAMENTI',5],
+  const LAYERS = [['MURI',5],['MURI_EST',6],['MURI_COM',3],['MURI_NONRISC',30],['MURI_ND',200],['QUOTE',2],['SERRAMENTI',5],
                   ['AMBIENTI',4],['PILASTRI',8],['SCALE',6],['SCALE_TESTO',8],['ETICHETTE',1],['MATITA',30],['TABELLE',3],['DEMOLIZIONI',2],['COSTRUZIONI',1]];
 
   // --- HEADER
@@ -4199,14 +4216,16 @@ function exportDXF() {
   // muri (interrotti dai varchi dei serramenti, con le spalle) + quote
   const cuts = wallCuts();
   const lay = (el, def) => (prog() && FASE_LAYER[el.fase]) || def;
+  const WALL_LAYER = {'':'MURI', perimetrale:'MURI_EST', comunione:'MURI_COM', nonrisc:'MURI_NONRISC', nd:'MURI_ND'};     // un layer a colori per classe di muro
+  const wallLayer = s => WALL_LAYER[wallClass(s)];
   state.segments.forEach((s,i) => {
     const A=state.points[s.a], B=state.points[s.b]; if(!A||!B||hid(s)) return;
-    segPieces(i, cuts).forEach(([t0,t1]) => line(lay(s, s.layer||'MURI'), A.x+(B.x-A.x)*t0, A.y+(B.y-A.y)*t0, A.x+(B.x-A.x)*t1, A.y+(B.y-A.y)*t1));
+    segPieces(i, cuts).forEach(([t0,t1]) => line(lay(s, wallLayer(s)), A.x+(B.x-A.x)*t0, A.y+(B.y-A.y)*t0, A.x+(B.x-A.x)*t1, A.y+(B.y-A.y)*t1));
     if (s.layer!=='MURI_EST')                     // i muri esterni non portano quota
       text('QUOTE', (A.x+B.x)/2+(s.qo?s.qo.x:0), (A.y+B.y)/2+(s.qo?s.qo.y:0.08), 0.12,
            Math.hypot(B.x-A.x,B.y-A.y).toFixed(2)+' m', true);
   });
-  cuts.jambs.forEach(j => { const s = state.segments[j.si]; line(s ? lay(s, s.layer||'MURI') : 'MURI', j.a.x, j.a.y, j.b.x, j.b.y); });
+  cuts.jambs.forEach(j => { const s = state.segments[j.si]; line(s ? lay(s, wallLayer(s)) : 'MURI', j.a.x, j.a.y, j.b.x, j.b.y); });
 
   // ambienti da poligono; etichetta portata fuori dall'ambiente = linea di richiamo fino al testo
   state.ambienti.forEach(a => {
@@ -4317,10 +4336,42 @@ const TABLES = [
   {id:'serr', title:'Serramenti',             file:'serramenti',             data:openingsTable},
   {id:'comm', title:'Superficie commerciale', file:'superficie_commerciale', data:commTable},
   {id:'lav',  title:'Demolizioni e costruzioni', file:'demolizioni_costruzioni', data:lavTable},
+  {id:'var',  title:'Riepilogo variazioni',   file:'riepilogo_variazioni',   data:varTable},
 ];
 // titolo della tabella: con un progetto in corso dice di quale stato e'; le quantita' sono sempre del Progetto
-function tableTitle(t) { return (!hasProject() ? 'Rilievo' : t.id==='lav' ? 'Progetto' : viewName())+' - '+t.title; }
-function tableFile(t) { return t.file+(hasProject() && t.id!=='lav' ? (prog() ? '_progetto' : '_stato_di_fatto') : ''); }
+function tableTitle(t) { return (!hasProject() ? 'Rilievo' : t.id==='lav' || t.id==='var' ? 'Progetto' : viewName())+' - '+t.title; }
+function tableFile(t) { return t.file+(hasProject() && t.id!=='lav' && t.id!=='var' ? (prog() ? '_progetto' : '_stato_di_fatto') : ''); }
+// riepilogo delle variazioni: solo ambienti e serramenti che il Progetto demolisce, crea o sostituisce, con le misure
+// di stato di fatto e progetto e il totale delle aree. I muri restano nella tabella Demolizioni e costruzioni.
+function varTable() {
+  if (!hasProject()) return null;
+  const f = v => v.toFixed(2), m2 = v => v==null ? '-' : f(v), rows = [], T = {amb:[0,0], serr:[0,0]};
+  state.ambienti.forEach(a => {
+    if (a.fase!=='demo' && a.fase!=='nuovo') return;
+    const net = ambNet(a), sdf = a.fase==='demo' ? net : null, prg = a.fase==='nuovo' ? net : null;
+    if (sdf!=null) T.amb[0] += sdf; if (prg!=null) T.amb[1] += prg;
+    rows.push(['Ambiente', a.name, a.fase==='demo' ? 'Demolito' : 'Nuovo', sdf!=null ? f(net)+' m²' : '-', prg!=null ? f(net)+' m²' : '-', m2(sdf), m2(prg)]);
+  });
+  const mis = o => o.label+' '+f(o.width)+' x '+f(opHb(o))+' m', ar = o => o.width*opHb(o), used = new Set();
+  state.openings.forEach(o => {
+    if (o.fase!=='nuovo') return;
+    const g = state.segments[o.segIdx], sw = g && g.fase==='es' ? demoAt(o.segIdx, o.t) : null;
+    if (!sw) return;
+    used.add(sw); T.serr[0] += ar(sw); T.serr[1] += ar(o);
+    rows.push(['Serramento', o.label, 'Sostituito', mis(sw), mis(o), m2(ar(sw)), m2(ar(o))]);
+  });
+  state.openings.forEach(o => {
+    if ((o.fase!=='demo' && o.fase!=='nuovo') || used.has(o)) return;
+    if (o.fase==='nuovo' && state.segments[o.segIdx] && state.segments[o.segIdx].fase==='es' && demoAt(o.segIdx, o.t)) return;
+    const d = o.fase==='demo';
+    T.serr[d ? 0 : 1] += ar(o);
+    rows.push(['Serramento', o.label, d ? 'Demolito' : 'Nuovo', d ? mis(o) : '-', d ? '-' : mis(o), d ? m2(ar(o)) : '-', d ? '-' : m2(ar(o))]);
+  });
+  if (!rows.length) return null;
+  if (T.amb[0] || T.amb[1]) rows.push(['Totale ambienti', '', '', '', '', f(T.amb[0]), f(T.amb[1])]);
+  if (T.serr[0] || T.serr[1]) rows.push(['Totale serramenti', '', '', '', '', f(T.serr[0]), f(T.serr[1])]);
+  return {head:['Elemento','Nome','Variazione','Misure stato di fatto','Misure progetto','Area stato di fatto (m²)','Area progetto (m²)'], rows};
+}
 // ═══ DEMOLIZIONI E COSTRUZIONI: le quantita' del Progetto. Muri: le due facce dello stesso muro contano una volta
 // (spessore = distanza tra le facce); una linea sola vale come muro con lo spessore scritto, o 10 cm (presunto).
 // Altezza = quella dell'ambiente che ha il muro sul bordo, o che lo contiene. Superficie al netto dei serramenti
@@ -4392,19 +4443,21 @@ function ambTable() {
 function openingsTable() {
   const ops = state.openings.filter(live); if (!ops.length) return null;
   const f = (v, d) => (+v).toFixed(d||2), T = {buc:0, vetr:0, tel:0}, X = OP_TXT;
+  const cuts = wallCuts(), inAmb = new Map();                  // ambienti che toccano ogni serramento (una porta tra due stanze ne ha due)
+  state.ambienti.filter(live).forEach(a => ambOpenings(a, cuts).forEach(i => inAmb.set(i, (inAmb.get(i) || []).concat(a.name))));
   const rows = ops.map(op => {
     const e = op.energy || {}, ar = openingAreas(op), gl = openingGlass(op);
     T.buc += ar.bucatura; T.vetr += ar.vetrata || 0; T.tel += ar.telaio || 0;
-    return [op.label, X.tipo[op.type]||op.type, f(op.width), f(opHb(op)), op.type==='F' && op.h0 ? f(op.h0) : '', op.spessore ? f(op.spessore) : '',
+    return [op.label, (inAmb.get(state.openings.indexOf(op)) || []).join(' / '), X.tipo[op.type]||op.type, f(op.width), f(opHb(op)), op.type==='F' && op.h0 ? f(op.h0) : '', op.spessore ? f(op.spessore) : '',
             X.vetro[e.vetro]||'', e.spVetro ?? '', e.distanz || '', X.si[e.cass]||'', X.si[e.cassIso]||'', e.cassH ?? '', e.cassP ?? '',
             X.telaio[e.telaio]||'', e.spTelaio ?? '', X.osc[e.oscurante]||'', gl ? gl.n : '', e.pannelli || '',
             gl ? f(gl.L, 3) : '', gl ? f(gl.H, 3) : '', f(ar.bucatura), ar.vetrata!=null ? f(ar.vetrata) : '', ar.telaio!=null ? f(ar.telaio) : '', e.note || ''];
   });
-  rows.push(['Totale', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', f(T.buc), T.vetr ? f(T.vetr) : '', T.tel ? f(T.tel) : '', '']);
-  return {head:['Serramento','Tipo','Larghezza (m)','Altezza (m)','Davanzale (m)','Profondità nicchia (m)','Vetro','Spessore vetro (mm)','Distanziatore',
+  rows.push(['Totale', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', f(T.buc), T.vetr ? f(T.vetr) : '', T.tel ? f(T.tel) : '', '']);
+  return {head:['Serramento','Ambiente','Tipo','Larghezza (m)','Altezza (m)','Davanzale (m)','Profondità nicchia (m)','Vetro','Spessore vetro (mm)','Distanziatore',
                 'Cassonetto','Cassonetto isolato','Cassonetto H (cm)','Cassonetto prof. (cm)','Telaio','Spessore profilo (mm)','Oscurante','Vetri','Pannelli',
                 'Larghezza specchiatura (m)','Altezza specchiatura (m)','Bucatura (m²)','Vetrata (m²)','Telaio (m²)','Note'],
-          rows, detail:[5,7,8,10,11,12,14,18,19]};
+          rows, detail:[6,8,9,11,12,13,15,19,20]};
 }
 // CSV per Excel italiano: separatore ';', BOM per gli accenti, virgolette solo dove servono
 function downloadCSV(name, rows) {
@@ -4479,8 +4532,66 @@ function commTable() {
   rows.push(['Totale mq commerciali', '', '', totComm.toFixed(2), '']);
   return {head, rows};
 }
+// schema delle aperture: per ogni ambiente col numero tra parentesi in "Aperture (m²)", il suo contorno con ogni serramento
+// contato segnato e numerato, e sotto l'elenco (nome, tipo e misure). Pagine A4 verticali, 2 x 3 ambienti per pagina.
+function ambSchemaPages(day) {
+  const mm = 300/25.4, M = Math.round(12*mm), pw = Math.round(210*mm), ph = Math.round(297*mm), pad = Math.round(2*mm);
+  const font = (pt, b, it) => (it ? 'italic ' : '')+(b ? 'bold ' : '')+Math.round(pt*300/72)+'px Segoe UI';
+  const cuts = wallCuts();
+  const items = state.ambienti.filter(live).filter(a => !ambNoVol(a) && a.indices.filter(i => state.points[i]).length >= 3)
+    .map(a => ({a, ops:ambOpenings(a, cuts)})).filter(x => x.ops.length);
+  if (!items.length) return [];
+  const top = M + Math.round(22*mm), cw = (pw - 2*M)/2, chh = (ph - top - M)/3, pages = [];
+  for (let k0 = 0; k0 < items.length; k0 += 6) {
+    const cv = document.createElement('canvas'); cv.width = pw; cv.height = ph;
+    const c = cv.getContext('2d'); c.fillStyle = '#fff'; c.fillRect(0, 0, pw, ph); c.textBaseline = 'middle';
+    c.fillStyle = '#000'; c.font = font(14, true); c.fillText((hasProject() ? viewName() : 'Rilievo')+' - Ambienti: aperture contate'+(k0 ? ' (segue)' : ''), M, M + Math.round(4*mm));
+    c.font = font(8, false, true); c.fillStyle = '#828282'; c.textAlign = 'right';
+    c.fillText('Aggiornato il '+day, pw - M, M + Math.round(4*mm)); c.textAlign = 'left';
+    c.fillText('Il numero tra parentesi nella colonna Aperture è quanti serramenti stanno sul bordo dell\'ambiente: ogni cerchio numerato è uno di essi.', M, M + Math.round(11*mm));
+    c.fillText('Una porta tra due stanze compare in entrambe e si toglie dalle pareti di entrambe.', M, M + Math.round(15*mm));
+    items.slice(k0, k0+6).forEach(({a, ops}, n) => {
+      const x0 = M + (n%2)*cw, y0 = top + Math.floor(n/2)*chh, lineH = Math.round((ops.length > 7 ? 3.4 : 4.2)*mm), shown = ops.slice(0, 10);
+      c.strokeStyle = '#c9d0d8'; c.lineWidth = 2; c.strokeRect(x0 + pad/2, y0 + pad/2, cw - pad, chh - pad);
+      c.fillStyle = '#000'; c.font = font(10, true); c.textAlign = 'left';
+      c.fillText(a.name+' - '+ops.length+(ops.length===1 ? ' apertura' : ' aperture'), x0 + pad*2, y0 + Math.round(5*mm));
+      const legH = (shown.length + (ops.length > shown.length ? 1 : 0))*lineH + pad;
+      const ax = x0 + pad*2, ay = y0 + Math.round(9*mm), aw = cw - pad*4, ah = chh - Math.round(9*mm) - legH - pad*2;
+      const pts = a.indices.map(i => state.points[i]).filter(Boolean);
+      const minX = Math.min(...pts.map(p => p.x)), maxX = Math.max(...pts.map(p => p.x)), minY = Math.min(...pts.map(p => p.y)), maxY = Math.max(...pts.map(p => p.y));
+      const s = Math.min(aw/Math.max(maxX-minX, 0.1), ah/Math.max(maxY-minY, 0.1)), ox = ax + (aw - (maxX-minX)*s)/2, oy = ay + (ah - (maxY-minY)*s)/2;
+      const X = p => ox + (p.x-minX)*s, Y = p => oy + (maxY-p.y)*s;
+      c.beginPath(); pts.forEach((p,i) => i ? c.lineTo(X(p), Y(p)) : c.moveTo(X(p), Y(p))); c.closePath();
+      c.fillStyle = '#f5f7fa'; c.fill(); c.strokeStyle = '#000'; c.lineWidth = 4; c.stroke();
+      ops.forEach((i, k) => {
+        const op = state.openings[i], cw0 = openingCenterW(i); if (!cw0) return;
+        let best = null;                                           // lato dell'ambiente piu' vicino al serramento, e punto proiettato
+        pts.forEach((p, e) => {
+          const q = pts[(e+1)%pts.length], dx = q.x-p.x, dy = q.y-p.y, l2 = dx*dx + dy*dy; if (!l2) return;
+          const t = Math.max(0, Math.min(1, ((cw0.x-p.x)*dx + (cw0.y-p.y)*dy)/l2)), P = {x:p.x+t*dx, y:p.y+t*dy}, d = Math.hypot(cw0.x-P.x, cw0.y-P.y);
+          if (!best || d < best.d) best = {d, P, ux:dx/Math.sqrt(l2), uy:dy/Math.sqrt(l2)};
+        });
+        if (!best) return;
+        const hw = op.width/2, A = {x:best.P.x - best.ux*hw, y:best.P.y - best.uy*hw}, B = {x:best.P.x + best.ux*hw, y:best.P.y + best.uy*hw};
+        c.strokeStyle = '#d4600a'; c.lineWidth = 12; c.beginPath(); c.moveTo(X(A), Y(A)); c.lineTo(X(B), Y(B)); c.stroke();
+        const r = Math.round(2.6*mm), cx = X(best.P), cy = Y(best.P);
+        c.fillStyle = '#fff'; c.strokeStyle = '#d4600a'; c.lineWidth = 4; c.beginPath(); c.arc(cx, cy, r, 0, 7); c.fill(); c.stroke();
+        c.fillStyle = '#000'; c.font = font(8, true); c.textAlign = 'center'; c.fillText(String(k+1), cx, cy); c.textAlign = 'left';
+      });
+      c.font = font(ops.length > 7 ? 7 : 8, false); c.fillStyle = '#000';
+      shown.forEach((i, k) => {
+        const op = state.openings[i];
+        c.fillText((k+1)+'  '+op.label+' - '+(OP_TXT.tipo[op.type]||op.type)+' '+op.width.toFixed(2).replace('.', ',')+' x '+opHb(op).toFixed(2).replace('.', ',')+' m',
+          x0 + pad*2, y0 + chh - pad - legH + lineH*(k+0.5) + pad/2);
+      });
+      if (ops.length > shown.length) c.fillText('... e altre '+(ops.length - shown.length), x0 + pad*2, y0 + chh - pad - legH + lineH*(shown.length+0.5) + pad/2);
+    });
+    pages.push(cv);
+  }
+  return pages;
+}
 // pagine (canvas) delle tabelle scelte, numerate in fondo
-function tablePages(ids) {
+function tablePages(ids, titleFn) {
   const mm = 300/25.4, M = Math.round(12*mm), pad = Math.round(1.5*mm);
   const rowH = Math.round(6.5*mm), headH = Math.round(11*mm), top = M + Math.round(12*mm);
   const font = (pt, b) => (b ? 'bold ' : '')+Math.round(pt*300/72)+'px Segoe UI';
@@ -4496,32 +4607,40 @@ function tablePages(ids) {
     const split2 = (h, m) => { const w = h.split(' '); let best = [h, '', m.measureText(h).width];
       for (let k=1; k<w.length; k++) { const a = w.slice(0,k).join(' '), b = w.slice(k).join(' '), x = Math.max(m.measureText(a).width, m.measureText(b).width); if (x < best[2] || best[1]==='' && x <= best[2]) best = [a, b, x]; }
       return best; };
-    const mins = head.map(h => { meas.font = font(9, true); const b = split2(h, meas); return Math.min(b[2], meas.measureText(h).width) + 2*pad; });
-    const ws = head.map((h,j) => {
-      meas.font = font(9, false); let w = mins[j];
-      rows.forEach(r => { w = Math.max(w, meas.measureText(r[j]).width + 2*pad); });
-      return w;
-    });
-    // si restringono le colonne con piu' spazio, mai sotto la parola piu' lunga dell'intestazione; se non basta, la pagina va in orizzontale
-    const fitCols = av => {
-      const tot = ws.reduce((a,b) => a+b, 0), over = tot - av;
-      if (over <= 0) return ws.map(w => w*av/tot);
+    // le tabelle sono SEMPRE in A4 verticale: si restringono le colonne con piu' spazio, mai sotto la parola piu' lunga
+    // dell'intestazione; se non basta si scende di corpo (9 -> 6 pt), e solo in ultimo si comprime in proporzione
+    const availP = Math.round(210*mm) - 2*M;
+    const layoutCols = (fs, strict) => {
+      const mins = head.map((h,j) => { meas.font = font(fs, true); const b = split2(h, meas); let m = Math.min(b[2], meas.measureText(h).width);
+        meas.font = font(fs, false);
+        rows.forEach(r => String(r[j]).split(' ').forEach(wd => { m = Math.max(m, meas.measureText(wd).width); }));       // mai sotto la parola piu' lunga della colonna
+        return m + 2*pad; });
+      const ws = head.map((h,j) => {
+        meas.font = font(fs, false); let w = mins[j];
+        rows.forEach(r => { w = Math.max(w, meas.measureText(r[j]).width + 2*pad); });
+        return w;
+      });
+      const tot = ws.reduce((a,b) => a+b, 0), over = tot - availP;
+      if (over <= 0) return ws.map(w => w*availP/tot);
+      if (strict) return null;                      // prima si scende di corpo; il testo si accorcia solo se nemmeno a 7 pt ci sta
       const slack = ws.map((w,j) => w - mins[j]), sl = slack.reduce((a,b) => a+b, 0);
       return sl >= over ? ws.map((w,j) => w - over*slack[j]/sl) : null;
     };
-    const availP = Math.round(210*mm) - 2*M, availL = Math.round(297*mm) - 2*M;
-    let W = fitCols(availP), land = false;
-    if (!W) { land = true; W = fitCols(availL) || ws.map(w => w*availL/ws.reduce((a,b) => a+b, 0)); }
-    const pw = Math.round((land ? 297 : 210)*mm), ph = Math.round((land ? 210 : 297)*mm), avail = pw - 2*M;
+    let fs = 9, W = layoutCols(fs, true);
+    while (!W && fs > 8) { fs -= 0.5; W = layoutCols(fs, true); }
+    for (fs = 9; !W && fs >= 6; fs -= 0.5) W = layoutCols(fs);          // poi le celle di piu' parole vanno su due righe, e solo in ultimo si scende di corpo
+    if (!W) fs = 6;
+    if (!W) { meas.font = font(fs, false); const ws = head.map((h,j) => Math.max(meas.measureText(h).width/2, ...rows.map(r => meas.measureText(r[j]).width)) + 2*pad), t = ws.reduce((a,b) => a+b, 0); W = ws.map(w => w*availP/t); }
+    const pw = Math.round(210*mm), ph = Math.round(297*mm), avail = pw - 2*M;
     const per = Math.max(1, Math.floor((ph - top - headH - M) / rowH));
     for (let r0 = 0; r0 < rows.length; r0 += per) {
       const cv = document.createElement('canvas'); cv.width = pw; cv.height = ph;
       const c = cv.getContext('2d'); c.fillStyle = '#fff'; c.fillRect(0, 0, pw, ph); c.textBaseline = 'middle';
-      c.fillStyle = '#000'; c.font = font(14, true); c.fillText(tableTitle(t)+(r0 ? ' (segue)' : ''), M, M + Math.round(4*mm));
+      c.fillStyle = '#000'; c.font = font(14, true); c.fillText((titleFn || tableTitle)(t)+(r0 ? ' (segue)' : ''), M, M + Math.round(4*mm));
       c.font = 'italic '+Math.round(8*300/72)+'px Segoe UI'; c.fillStyle = '#828282'; c.textAlign = 'right';
       c.fillText('Aggiornato il '+day, pw - M, M + Math.round(4*mm)); c.textAlign = 'left';
       c.fillStyle = '#e4e8ee'; c.fillRect(M, top, avail, headH);
-      let x = M; c.fillStyle = '#000'; c.font = font(9, true);
+      let x = M; c.fillStyle = '#000'; c.font = font(fs, true);
       head.forEach((h,j) => {                                // intestazione: al massimo due righe
         const one = c.measureText(h).width <= W[j]-2*pad, sp = one ? [h, ''] : split2(h, c), l1 = [sp[0]], l2 = sp[1];
         c.fillText(fit(c, l1.join(' '), W[j]-2*pad), x+pad, top + headH/2 - (l2 ? rowH*0.3 : 0));
@@ -4533,16 +4652,22 @@ function tablePages(ids) {
         const y = top + headH + i*rowH, tot = /^Totale/.test(r[0]);
         if (i%2) { c.fillStyle = '#f5f7fa'; c.fillRect(M, y, avail, rowH); }
         if (tot) { c.strokeStyle = '#000'; c.lineWidth = 3; c.beginPath(); c.moveTo(M, y); c.lineTo(M+avail, y); c.stroke(); }
-        c.fillStyle = '#000'; c.font = font(9, tot); x = M;
+        c.fillStyle = '#000'; c.font = font(fs, tot); x = M;
         r.forEach((s,j) => {
           const num = isNum(s);
-          c.textAlign = num ? 'right' : 'left'; c.fillText(fit(c, s, W[j]-2*pad), num ? x+W[j]-pad : x+pad, y + rowH/2); x += W[j];
+          c.textAlign = num ? 'right' : 'left';
+          if (!num && c.measureText(s).width > W[j]-2*pad && s.includes(' ')) {      // una cella lunga va su due righe
+            const sp = split2(s, c);
+            c.fillText(fit(c, sp[0], W[j]-2*pad), x+pad, y + rowH*0.27); c.fillText(fit(c, sp[1], W[j]-2*pad), x+pad, y + rowH*0.73);
+          } else c.fillText(fit(c, s, W[j]-2*pad), num ? x+W[j]-pad : x+pad, y + rowH/2);
+          x += W[j];
         });
         c.textAlign = 'left';
       });
       c.strokeStyle = '#9aa3ad'; c.lineWidth = 2; c.strokeRect(M, top, avail, headH + part.length*rowH);
       pages.push(cv);
     }
+    if (t.id==='amb') ambSchemaPages(day).forEach(cv => pages.push(cv));
   });
   pages.forEach((cv,i) => {
     const c = cv.getContext('2d'); c.fillStyle = '#555'; c.font = font(8, false); c.textAlign = 'right'; c.textBaseline = 'middle';
@@ -5634,6 +5759,97 @@ function impCalibAsk() {
     }, () => { impUpdateBar(); impDraw(); });                // annullo la domanda: i punti restano, si possono ancora regolare
 }
 
+// ── IMPORT DXF ───────────────────────────────────────────────
+// Solo DXF testo (nessun DWG: da AutoCAD si salva in DXF). Legge LINE, LWPOLYLINE e POLYLINE; chiede l'unita' del
+// disegno e i layer dei muri; disegna quei layer come base (1 cm/px, la precisione del CAD) e lancia la stessa
+// proposta di ambienti del ricalco, pronta da applicare.
+function dxfParse(txt) {
+  const L = txt.split(/\r?\n/), ents = [], skip = {};
+  let unit = null, sec = '', hv = '', cur = null, poly = null, last0 = '';
+  const fin = () => {
+    if (!cur) return;
+    if (cur.t==='LINE') ents.push({layer:cur.layer, pts:[cur.p, cur.q], closed:false});
+    else if (cur.t==='LWPOLYLINE') ents.push({layer:cur.layer, pts:cur.v, closed:!!(cur.f & 1)});
+    else if (cur.t==='VERTEX' && poly) poly.v.push([cur.x, cur.y]);
+    cur = null;
+  };
+  for (let i=0; i+1<L.length; i+=2) {
+    const c = parseInt(L[i], 10), v = L[i+1].trim(), n = parseFloat(v);
+    if (c===0) {
+      fin(); last0 = v;
+      if (v==='ENDSEC') sec = '';
+      else if (sec==='ENTITIES') {
+        if (v==='LINE') cur = {t:v, layer:'0', p:[0,0], q:[0,0]};
+        else if (v==='LWPOLYLINE') cur = {t:v, layer:'0', v:[], f:0};
+        else if (v==='POLYLINE') cur = poly = {t:v, layer:'0', v:[], f:0};
+        else if (v==='VERTEX') cur = {t:v, x:0, y:0};
+        else if (v==='SEQEND') { if (poly) ents.push({layer:poly.layer, pts:poly.v, closed:!!(poly.f & 1)}); poly = null; }
+        else skip[v] = (skip[v] || 0) + 1;
+      }
+      continue;
+    }
+    if (c===2 && last0==='SECTION') { sec = v; continue; }
+    if (sec==='HEADER') { if (c===9) hv = v; else if (c===70 && hv==='$INSUNITS') { unit = parseInt(v, 10); hv = ''; } continue; }
+    if (sec!=='ENTITIES' || !cur) continue;
+    if (c===8 && cur.t!=='VERTEX') cur.layer = v;
+    else if (cur.t==='LINE') { if (c===10) cur.p[0] = n; else if (c===20) cur.p[1] = n; else if (c===11) cur.q[0] = n; else if (c===21) cur.q[1] = n; }
+    else if (cur.t==='LWPOLYLINE') { if (c===70) cur.f = parseInt(v, 10); else if (c===10) cur.v.push([n, 0]); else if (c===20 && cur.v.length) cur.v[cur.v.length-1][1] = n; }
+    else if (cur.t==='POLYLINE') { if (c===70) cur.f = parseInt(v, 10); }
+    else if (cur.t==='VERTEX') { if (c===10) cur.x = n; else if (c===20) cur.y = n; }
+  }
+  fin();
+  return {ents, unit, skip};
+}
+function importDxf() { hideAllMenus(); const i = $id('file-dxf'); i.value = ''; i.click(); }
+$id('file-dxf').addEventListener('change', async e => {
+  const f = e.target.files && e.target.files[0]; if (!f) return;
+  try {
+    const txt = await f.text();
+    if (/^AutoCAD Binary DXF/.test(txt)) { alert('DXF binario: salvalo da AutoCAD come DXF testo (ASCII) e riprova.'); return; }
+    const d = dxfParse(txt);
+    if (!d.ents.length) { alert('Nel DXF non ho trovato linee o polilinee (LINE, LWPOLYLINE, POLYLINE).'); return; }
+    const lay = new Map();
+    d.ents.forEach(en => lay.set(en.layer, (lay.get(en.layer) || 0) + Math.max(1, en.pts.length - 1)));
+    const names = [...lay.keys()].sort(), wallRe = /mur|wall|perim|tamp|parete|pareti/i;
+    const guess = names.filter(k => wallRe.test(k)), on = new Set(guess.length ? guess : names);
+    let a0 = 1e18, b0 = -1e18; d.ents.forEach(en => en.pts.forEach(p => { a0 = Math.min(a0, p[0]); b0 = Math.max(b0, p[0]); }));
+    const spread = b0 - a0;
+    const u0 = {4:'0.001', 5:'0.01', 6:'1'}[d.unit] || (spread < 100 ? '1' : spread < 10000 ? '0.01' : '0.001');
+    const fields = [{label:'Unità del disegno', id:'u', type:'select', value:u0, options:[{value:'1', label:'Metri'}, {value:'0.01', label:'Centimetri'}, {value:'0.001', label:'Millimetri'}]},
+      {type:'head', label:'Layer dei muri'}].concat(names.map((k,j) => ({label:k+' ('+lay.get(k)+' linee)', id:'l'+j, type:'check', value:on.has(k) ? '1' : ''})));
+    const nSk = Object.keys(d.skip).filter(k => /^(ARC|CIRCLE|INSERT|SPLINE|ELLIPSE|HATCH)$/.test(k)).map(k => k+' '+d.skip[k]).join(', ');
+    askDialog('Importa DXF', fields, 'Spunta solo i layer dei muri: quote, arredi e testi falserebbero gli ambienti.'+(nSk ? ' Non letti: '+nSk+'.' : ''), v => {
+      const k = parseFloat(v.u), pick = new Set(names.filter((_,j) => v['l'+j]));
+      if (!pick.size) { setTip('Nessun layer spuntato.'); return; }
+      const segs = []; let minX = 1e18, minY = 1e18, maxX = -1e18, maxY = -1e18;
+      d.ents.forEach(en => {
+        if (!pick.has(en.layer)) return;
+        const P = en.pts.map(p => [p[0]*k, p[1]*k]), m = en.closed ? P.length : P.length - 1;
+        for (let i=0; i<m; i++) { const a = P[i], b = P[(i+1)%P.length]; if (Math.hypot(b[0]-a[0], b[1]-a[1]) < 0.002) continue; segs.push([a, b]); }
+        P.forEach(p => { minX = Math.min(minX, p[0]); maxX = Math.max(maxX, p[0]); minY = Math.min(minY, p[1]); maxY = Math.max(maxY, p[1]); });
+      });
+      if (!segs.length) { setTip('I layer scelti non hanno linee.'); return; }
+      const mg = 0.5, wm = maxX-minX+2*mg, hm = maxY-minY+2*mg;
+      let mpp = 0.01; while (wm/mpp*(hm/mpp) > 2.5e7 && mpp < 0.05) mpp += 0.005;
+      const w = Math.ceil(wm/mpp), h = Math.ceil(hm/mpp);
+      if (w > 12000 || h > 12000) { alert('Disegno troppo esteso: '+wm.toFixed(0)+' x '+hm.toFixed(0)+' m. Controlla l\'unità o i layer.'); return; }
+      const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+      const cx = cv.getContext('2d', {willReadFrequently:true}); cx.strokeStyle = '#000'; cx.lineWidth = 2; cx.lineCap = 'round';
+      cx.beginPath(); segs.forEach(([a,b]) => { cx.moveTo((a[0]-minX+mg)/mpp, (maxY-a[1]+mg)/mpp); cx.lineTo((b[0]-minX+mg)/mpp, (maxY-b[1]+mg)/mpp); }); cx.stroke();
+      const px = cx.getImageData(0, 0, w, h).data, mask = new Uint8Array(w*h);
+      for (let i=0; i<mask.length; i++) mask[i] = px[i*4+3] > 100 ? 1 : 0;
+      const u = {mask, w, h, mpp, x:0, y:h*mpp, alpha:0.6, visible:true};
+      buildUnderlayView(u);
+      state.underlay = u; state.wallsPrev = null; state.moveBase = false;
+      refreshBasePanel(); fitUnderlay();
+      setTimeout(() => { try { underlayCorners(); } catch (er) {} }, 400);
+      if (prog()) { setTip('DXF importato come base. Il ricalco crea il rilievo: si fa nello Stato di fatto.'); return; }
+      wallsOpen();
+      setTip('DXF importato ('+segs.length+' linee). Gli ambienti trovati sono in arancione: controlla e premi Applica.');
+    });
+  } catch (err) { alert('Import DXF non riuscito: '+err.message); }
+});
+
 function impConfirm() {
   if (!imp.src) return;
   if (!imp.mpp) { alert('Scala non impostata: usa "Scala".'); return; }
@@ -6000,8 +6216,8 @@ else {
 //  WEBAPP INSTALLABILE (solo se servita da internet, non da file locale)
 // ═══════════════════════════════════════════════════════════
 // versione e novita' vengono scritte da pubblica_app.py leggendo la prima voce di CHANGELOG.md
-const APP_VERSION = '2.07';
-const APP_NOTE = ["Copia e incolla: l'ambiente incollato prende il nome numerato successivo (Soggiorno 2, Camera 3...) invece di ripetere il nome dell'originale"];
+const APP_VERSION = '2.08';
+const APP_NOTE = ["Importa DXF (menu File): chiede l'unità del disegno, mostra i layer e tu spunti quelli dei muri; il disegno diventa la base in scala esatta e l'app propone da sola gli ambienti, da controllare e applicare. Solo DXF testo (niente DWG: da AutoCAD si salva in DXF)", "Tabelle sempre in A4 verticale: se le colonne non ci stanno, le celle lunghe vanno su due righe e solo in ultimo scende il corpo. La planimetria resta orizzontale solo se la zona è più larga che alta", "Serramenti: nuova colonna \"Ambiente\" (una porta tra due stanze ne indica due)", "Ambienti: dopo la tabella, schema delle aperture per ogni ambiente con ogni serramento contato numerato e il suo elenco", "Planimetria esportata: ogni classe di muro ha il suo colore oltre al tratteggio (interno blu, esterno viola, altre unità verde, non riscaldati arancio, non assegnati fucsia), anche nei layer del DXF; porta anche \"Aggiornato il [data]\"", "Esportazione del confronto Stato di fatto e Progetto: le tabelle identiche si stampano una volta sola (\"invariato\"); nuova tabella \"Riepilogo variazioni\" con ambienti e serramenti demoliti, nuovi o sostituiti, misure e totale aree", "Menu Disegna riordinato per finalità (disegna, muro, posiziona e misura, copia) e tolti i comandi doppi (Incolla, Copia)", "Esc riporta sempre a Seleziona e annulla l'operazione in corso"];
 const IS_LOCAL = APP_VERSION.startsWith('__');
 document.getElementById('menu-version').textContent = IS_LOCAL ? 'Versione locale' : 'ℹ Versione '+APP_VERSION+' - novità';
 // finestra con un elenco puntato (novita', note di aggiornamento del progetto); extra = secondo elenco con titoletto
